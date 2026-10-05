@@ -1,29 +1,31 @@
 [project]
-name = "backend"
+name = "agentic-mannheim"
 version = "0.1.0"
-description = "Add your description here"
+description = "Experimental Agentic Digital Twin of Mannheim"
 readme = "README.md"
-authors = [
-    { name = "Vahid Saadat", email = "vst121@gmail.com" }
-]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.142.2",
-    "pydantic-settings>=2.15.0",
-    "uvicorn[standard]>=0.54.0",
+    "fastapi>=0.118.0",
+    "pydantic>=2.12.0",
+    "pydantic-settings>=2.11.0",
+    "uvicorn[standard]>=0.37.0",
 ]
-
-[project.scripts]
-backend = "backend:main"
-
-[build-system]
-requires = ["uv_build>=0.12.10,<0.13.0"]
-build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
-    "pytest>=9.1.1",
-    "pytest-asyncio>=1.4.0",
-    "ruff>=0.16.10",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ruff>=0.14.0",
 ]
+
+[tool.uv]
+package = true
+
+[tool.uv.build-backend]
+module-name = ["api", "domain", "digital_twin", "simulation", "agents", "decision", "policy"]
+module-root = "src"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"
