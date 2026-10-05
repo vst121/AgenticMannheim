@@ -14,13 +14,13 @@ The requirements describe **what the system must provide**, not how it should be
 
 The system must:
 
-* Represent a selected area of Mannheim Innenstadt.
-* Represent roads and intersections relevant to the simulation.
-* Represent traffic signals.
-* Represent virtual vehicles.
-* Represent emergency vehicles.
-* Represent incidents and events.
-* Maintain the current state of the simulated city.
+- Represent a selected area of Mannheim Innenstadt.
+- Represent roads and intersections relevant to the simulation.
+- Represent traffic signals.
+- Represent virtual vehicles.
+- Represent emergency vehicles.
+- Represent incidents and events.
+- Maintain the current state of the simulated city.
 
 ---
 
@@ -28,11 +28,11 @@ The system must:
 
 The system must:
 
-* Display a recognizable Mannheim Innenstadt map.
-* Use real geographic data as the geographic foundation.
-* Display roads and relevant infrastructure.
-* Provide a clear visual distinction between the real map and simulated entities.
-* Support interactive map navigation.
+- Display a recognizable Mannheim Innenstadt map.
+- Use real geographic data as the geographic foundation.
+- Display roads and relevant infrastructure.
+- Provide a clear visual distinction between the real map and simulated entities.
+- Support interactive map navigation.
 
 ---
 
@@ -40,15 +40,15 @@ The system must:
 
 The system must:
 
-* Maintain a simulation clock.
-* Advance the simulation through discrete updates.
-* Move virtual vehicles through the road network.
-* Model basic traffic signal states.
-* Model vehicles waiting and moving.
-* Generate predefined simulation events.
-* Support deterministic scenarios where required.
-* Allow the simulation to be started, paused, and reset.
-* Support different simulation speeds.
+- Maintain a simulation clock.
+- Advance the simulation through discrete updates.
+- Move virtual vehicles through the road network.
+- Model basic traffic signal states.
+- Model vehicles waiting and moving.
+- Generate predefined simulation events.
+- Support deterministic scenarios where required.
+- Allow the simulation to be started, paused, and reset.
+- Support different simulation speeds.
 
 ---
 
@@ -56,14 +56,14 @@ The system must:
 
 The system must support:
 
-* Normal vehicles.
-* Emergency vehicles.
-* Vehicle position.
-* Vehicle direction.
-* Vehicle state.
-* Vehicle movement.
-* Vehicle waiting.
-* Vehicle interaction with traffic signals.
+- Normal vehicles.
+- Emergency vehicles.
+- Vehicle position.
+- Vehicle direction.
+- Vehicle state.
+- Vehicle movement.
+- Vehicle waiting.
+- Vehicle interaction with traffic signals.
 
 The initial vehicle behavior may be intentionally simplified.
 
@@ -73,11 +73,11 @@ The initial vehicle behavior may be intentionally simplified.
 
 The system must:
 
-* Represent traffic signals associated with intersections.
-* Maintain signal states.
-* Change signal states through simulation actions.
-* Prevent invalid signal transitions.
-* Make signal changes visible in the UI.
+- Represent traffic signals associated with intersections.
+- Maintain signal states.
+- Change signal states through simulation actions.
+- Prevent invalid signal transitions.
+- Make signal changes visible in the UI.
 
 ---
 
@@ -85,10 +85,10 @@ The system must:
 
 The system must support simulated events such as:
 
-* Emergency vehicle approaching an intersection.
-* Traffic congestion.
-* Road incidents.
-* Signal-related situations.
+- Emergency vehicle approaching an intersection.
+- Traffic congestion.
+- Road incidents.
+- Signal-related situations.
 
 Events must have a clear lifecycle and be observable by the relevant agent.
 
@@ -102,13 +102,13 @@ An agent must be able to observe relevant parts of the Digital Twin state.
 
 An observation may include:
 
-* Current intersection
-* Nearby vehicles
-* Traffic signal state
-* Emergency vehicles
-* Traffic conditions
-* Active incidents
-* Relevant historical context
+- Current intersection
+- Nearby vehicles
+- Traffic signal state
+- Emergency vehicles
+- Traffic conditions
+- Active incidents
+- Relevant historical context
 
 Agents must not directly own or modify the authoritative simulation state.
 
@@ -149,11 +149,11 @@ Agents must not be able to execute arbitrary operations.
 
 The decision engine must:
 
-* Receive structured decision inputs.
-* Evaluate a bounded set of possible decisions.
-* Produce a structured decision.
-* Return a decision that can be validated by the application.
-* Provide sufficient information for the decision to be inspected.
+- Receive structured decision inputs.
+- Evaluate a bounded set of possible decisions.
+- Produce a structured decision.
+- Return a decision that can be validated by the application.
+- Provide sufficient information for the decision to be inspected.
 
 The decision engine must not directly modify Digital Twin state.
 
@@ -177,11 +177,11 @@ Simulation
 
 The policy layer must:
 
-* Validate proposed actions.
-* Reject unsupported actions.
-* Enforce defined constraints.
-* Prevent invalid state transitions.
-* Produce an auditable validation result.
+- Validate proposed actions.
+- Reject unsupported actions.
+- Enforce defined constraints.
+- Prevent invalid state transitions.
+- Produce an auditable validation result.
 
 A rejected decision must not be executed.
 
@@ -219,42 +219,42 @@ The main interface should include:
 
 ### Map
 
-* Mannheim map
-* Roads
-* Intersections
-* Traffic signals
-* Vehicles
-* Emergency vehicles
-* Active incidents
+- Mannheim map
+- Roads
+- Intersections
+- Traffic signals
+- Vehicles
+- Emergency vehicles
+- Active incidents
 
 ### Simulation Controls
 
-* Start
-* Pause
-* Reset
-* Simulation speed
-* Scenario selection
+- Start
+- Pause
+- Reset
+- Simulation speed
+- Scenario selection
 
 ### City State
 
 At minimum:
 
-* Vehicle count
-* Moving vehicles
-* Waiting vehicles
-* Active incidents
-* Simulation time
+- Vehicle count
+- Moving vehicles
+- Waiting vehicles
+- Active incidents
+- Simulation time
 
 ### Agent State
 
 The UI should expose:
 
-* Active agents
-* Current observation
-* Current situation
-* Proposed decision
-* Policy result
-* Executed action
+- Active agents
+- Current observation
+- Current situation
+- Proposed decision
+- Policy result
+- Executed action
 
 ### Event Timeline
 
@@ -332,9 +332,9 @@ Represents the physical structure of Mannheim.
 
 Examples:
 
-* Roads
-* Intersections
-* Geographic coordinates
+- Roads
+- Intersections
+- Geographic coordinates
 
 ### Simulation State
 
@@ -342,10 +342,10 @@ Represents the current virtual state.
 
 Examples:
 
-* Vehicle positions
-* Traffic signal states
-* Incidents
-* Simulation time
+- Vehicle positions
+- Traffic signal states
+- Incidents
+- Simulation time
 
 ### Agent State
 
@@ -353,10 +353,10 @@ Represents the current operational state of agents.
 
 Examples:
 
-* Observation
-* Decision
-* Action
-* Status
+- Observation
+- Decision
+- Action
+- Status
 
 These concerns must remain logically separated.
 
@@ -372,12 +372,12 @@ Predefined scenarios should produce reproducible results where deterministic beh
 
 The system should allow additional:
 
-* Agents
-* Scenarios
-* Entity types
-* Decision types
-* Policies
-* Simulation behaviors
+- Agents
+- Scenarios
+- Entity types
+- Decision types
+- Policies
+- Simulation behaviors
 
 without redesigning the complete system.
 
@@ -397,13 +397,13 @@ The system should support a visually smooth simulation for the MVP scenario and 
 
 The implementation should maintain clear boundaries between:
 
-* UI
-* API
-* Digital Twin
-* Simulation
-* Agents
-* Decision-making
-* Policy validation
+- UI
+- API
+- Digital Twin
+- Simulation
+- Agents
+- Decision-making
+- Policy validation
 
 ### 11.7 Safety
 
@@ -417,15 +417,15 @@ All executable actions must pass through defined application controls.
 
 The MVP intentionally avoids:
 
-* Real-time traffic feeds
-* Real municipal infrastructure
-* Production traffic control
-* Real emergency-service integration
-* City-wide Digital Twin modeling
-* Complex traffic optimization
-* Autonomous vehicle control
-* Large-scale distributed infrastructure
-* Unnecessary external services
+- Real-time traffic feeds
+- Real municipal infrastructure
+- Production traffic control
+- Real emergency-service integration
+- City-wide Digital Twin modeling
+- Complex traffic optimization
+- Autonomous vehicle control
+- Large-scale distributed infrastructure
+- Unnecessary external services
 
 The objective is to demonstrate the architecture with the smallest meaningful system.
 
@@ -465,40 +465,40 @@ A user should be able to start the application, select the emergency scenario, o
 
 ### Must Have
 
-* Mannheim map
-* Digital Twin state
-* Virtual vehicles
-* Traffic signals
-* Simulation engine
-* Agent
-* Bounded decision engine
-* Policy validation
-* Emergency scenario
-* Interactive UI
-* Event timeline
-* Start / pause / reset
+- Mannheim map
+- Digital Twin state
+- Virtual vehicles
+- Traffic signals
+- Simulation engine
+- Agent
+- Bounded decision engine
+- Policy validation
+- Emergency scenario
+- Interactive UI
+- Event timeline
+- Start / pause / reset
 
 ### Should Have
 
-* Multiple scenarios
-* Simulation speed controls
-* Agent inspector
-* Incident visualization
-* Deterministic scenario replay
+- Multiple scenarios
+- Simulation speed controls
+- Agent inspector
+- Incident visualization
+- Deterministic scenario replay
 
 ### Could Have
 
-* Multiple cooperating agents
-* Additional city services
-* More complex traffic behavior
-* Human approval step
-* Historical simulation replay
+- Multiple cooperating agents
+- Additional city services
+- More complex traffic behavior
+- Human approval step
+- Historical simulation replay
 
 ### Will Not Have in MVP
 
-* Real-time Mannheim traffic
-* Real-world traffic control
-* Production municipal integration
-* City-wide simulation
-* Autonomous vehicle control
-* Traffic optimization research
+- Real-time Mannheim traffic
+- Real-world traffic control
+- Production municipal integration
+- City-wide simulation
+- Autonomous vehicle control
+- Traffic optimization research
