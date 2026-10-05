@@ -3,6 +3,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from domain.city import CityMetadata
+
+from ..mappers.city_mapper import to_domain, to_model
 from ..models.city import CityModel
 
 
@@ -10,20 +13,26 @@ class CityRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get(self, city_id: UUID) -> CityModel | None:
-        statement = select(CityModel).where(
-            CityModel.id == city_id
-        )
+    def get(self, city_id: UUID) -> CityMetadata | None:
+        statement = select(CityModel).where(CityModel.id == city_id)
 
-        return self._session.scalar(statement)
+        model = self._session.scalar(statement)
 
-    def get_all(self) -> list[CityModel]:
+        if model is None:
+            return None
+
+        return to_domain(model)
+
+    def get_all(self) -> list[CityMetadata]:
         statement = select(CityModel)
+        models = self._session.scalars(statement).all()
 
-        return list(self._session.scalars(statement).all())
+        return [to_domain(model) for model in models]
 
-    def add(self, city: CityModel) -> CityModel:
-        self._session.add(city)
+    def add(self, city: CityMetadata) -> CityMetadata:
+        model = to_model(city)
+
+        self._session.add(model)
         self._session.flush()
 
-        return city
+        return to_domain(model)

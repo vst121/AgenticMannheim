@@ -15,9 +15,10 @@ class Intersection:
         name: str,
         latitude: float,
         longitude: float,
+        traffic_light: TrafficLightState = TrafficLightState.RED,
     ) -> None:
         self.id = intersection_id
         self.name = name
         self.latitude = latitude
         self.longitude = longitude
-        self.traffic_light = TrafficLightState.RED
+        self.traffic_light = traffic_light
