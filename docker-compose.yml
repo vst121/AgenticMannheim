@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: agentic-mannheim-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agentic_mannheim
+      POSTGRES_USER: agentic
+      POSTGRES_PASSWORD: agentic
+    ports:
+      - "5432:5432"
+    volumes:
+      - agentic_mannheim_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  agentic_mannheim_postgres_data:  
