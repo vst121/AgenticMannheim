@@ -3,6 +3,7 @@ from .city import CityModel
 from .intersection import IntersectionModel
 from .event import EventModel
 from .road import RoadModel
+from .agent_run import AgentRunModel
 
 __all__ = [
     "Base",
@@ -10,4 +11,5 @@ __all__ = [
     "IntersectionModel",
     "EventModel",
     "RoadModel",
+    "AgentRunModel",
 ]

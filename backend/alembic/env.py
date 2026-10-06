@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from infrastructure.persistence.database import settings
 from infrastructure.persistence.models import Base
 from infrastructure.persistence.models import CityModel  # noqa: F401
+from infrastructure.persistence.models.agent_run import AgentRunModel
 
 
 config = context.config

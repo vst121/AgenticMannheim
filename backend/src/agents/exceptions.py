@@ -1,15 +1,15 @@
-from uuid import UUID
+from agents.run import AgentRun
 
 
 class AgentRunFailed(Exception):
     def __init__(
         self,
-        run_id: UUID,
+        run: AgentRun,
         cause: Exception,
     ) -> None:
-        self.run_id = run_id
+        self.run = run
         self.cause = cause
 
         super().__init__(
-            f"Agent run '{run_id}' failed: {cause}"
+            f"Agent run '{run.id}' failed: {cause}"
         )

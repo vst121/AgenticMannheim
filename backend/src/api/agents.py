@@ -12,6 +12,9 @@ from infrastructure.persistence.database import SessionLocal
 from infrastructure.persistence.repositories.event_repository import EventRepository
 from policy.policy import CityPolicy
 from simulation.engine import SimulationEngine
+from infrastructure.persistence.repositories.agent_run_repository import (
+    AgentRunRepository,
+)
 
 router = APIRouter(
     prefix="/api/agents",
@@ -61,11 +64,14 @@ async def run_emergency_agent(
     except AgentRunFailed as exc:
         with SessionLocal() as audit_session:
             event_repository = EventRepository(audit_session)
+            agent_run_repository = AgentRunRepository(audit_session)
+
+            agent_run_repository.add(exc.run)
 
             event_repository.add(
                 CityEvent(
                     event_type=CityEventType.AGENT_RUN_FAILED,
-                    correlation_id=exc.run_id,
+                    correlation_id=exc.run.id,
                     payload={
                         "error_type": type(exc.cause).__name__,
                         "error": str(exc.cause),

@@ -10,6 +10,9 @@ from decision.translator import DecisionTranslator
 from domain.event import CityEvent, CityEventType
 from infrastructure.persistence.repositories.event_repository import EventRepository
 
+from infrastructure.persistence.repositories.agent_run_repository import (
+    AgentRunRepository,
+)
 
 class AgentOrchestrator:
     def __init__(
@@ -18,16 +21,20 @@ class AgentOrchestrator:
         translator: DecisionTranslator,
         executor: DecisionExecutor,
         event_repository: EventRepository,
+        agent_run_repository: AgentRunRepository,
     ) -> None:
         self._agent = agent
         self._translator = translator
         self._executor = executor
         self._event_repository = event_repository
+        self._agent_run_repository = agent_run_repository
 
     def run(self) -> AgentExecutionResult | None:
         agent_run = AgentRun.start(
             agent_type="emergency",
         )
+
+        self._agent_run_repository.add(agent_run)
 
         try:
             decision = self._agent.observe_and_decide()
@@ -52,6 +59,8 @@ class AgentOrchestrator:
             else:
                 agent_run = agent_run.reject()
 
+            self._agent_run_repository.update(agent_run)    
+
             return AgentExecutionResult(
                 run_id=agent_run.id,
                 status=agent_run.status,
@@ -63,7 +72,8 @@ class AgentOrchestrator:
             agent_run = agent_run.fail()
 
             raise AgentRunFailed(
-                run_id=agent_run.id,
+                run=agent_run,
+                started_at=agent_run.started_at,
                 cause=exc,
             ) from exc
 
