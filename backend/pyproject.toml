@@ -26,7 +26,7 @@ dev = [
 package = true
 
 [tool.uv.build-backend]
-module-name = ["api", "domain", "digital_twin", "simulation", "agents", "decision", "policy"]
+module-name = ["api", "domain", "digital_twin", "simulation", "agents", "decision", "policy", "scripts"]
 module-root = "src"
 
 [build-system]
