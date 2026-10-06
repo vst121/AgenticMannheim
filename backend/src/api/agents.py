@@ -1,4 +1,5 @@
 from agents import orchestrator
+from api.schemas import AgentExecutionResponse
 import digital_twin
 from fastapi import APIRouter, Request
 
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/api/agents", tags=["Agents"])
 @router.post("/emergency")
 async def run_emergency_agent(
     request: Request,
-) -> dict[str, bool | str]:
+) -> AgentExecutionResponse:
     digital_twin: DigitalTwin = request.app.state.digital_twin
 
     agent = EmergencyAgent(digital_twin)
@@ -53,14 +54,14 @@ async def run_emergency_agent(
         session.commit()
 
         if policy_decision is None:
-            return {
-                "executed": False,
-                "allowed": False,
-                "reason": "No emergency vehicle requiring action was found.",
-            }
+            return AgentExecutionResponse(
+                executed=False,
+                allowed=False,
+                reason="No emergency vehicle requiring action was found.",
+            )
 
-    return {
-        "executed": policy_decision.allowed,
-        "allowed": policy_decision.allowed,
-        "reason": policy_decision.reason,
-    }
+    return AgentExecutionResponse(
+        executed=policy_decision.allowed,
+        allowed=policy_decision.allowed,
+        reason=policy_decision.reason,
+    )
