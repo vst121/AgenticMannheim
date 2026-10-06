@@ -39,7 +39,7 @@ class AgentOrchestrator:
 
         policy_decision = self._executor.execute(
             action=action,
-            correlation_id=agent_run.id,
+            run_id=agent_run.id,
         )
 
         return AgentExecutionResult(
