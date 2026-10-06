@@ -49,6 +49,8 @@ class DigitalTwin:
         latitude: float,
         longitude: float,
         speed_kmh: float = 0.0,
+        road_id: UUID | None = None,
+        position_on_road_meters: float = 0.0,
     ) -> UUID:
         vehicle = Vehicle(
             vehicle_id=uuid4(),
@@ -56,6 +58,8 @@ class DigitalTwin:
             latitude=latitude,
             longitude=longitude,
             speed_kmh=speed_kmh,
+            road_id=road_id,
+            position_on_road_meters=position_on_road_meters,
         )
 
         self._state.vehicles.append(vehicle)
