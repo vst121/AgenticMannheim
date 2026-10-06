@@ -15,6 +15,7 @@ from simulation.engine import SimulationEngine
 from infrastructure.persistence.repositories.agent_run_repository import (
     AgentRunRepository,
 )
+from simulation.state import SimulationState
 
 router = APIRouter(
     prefix="/api/agents",
@@ -43,6 +44,7 @@ async def run_emergency_agent(
             simulation = SimulationEngine(
                 digital_twin=digital_twin,
                 event_repository=event_repository,
+                simulation_state=SimulationState.create(),
             )
 
             executor = DecisionExecutor(

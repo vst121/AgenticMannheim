@@ -12,6 +12,12 @@ class RoadType(StrEnum):
 
 
 @dataclass(frozen=True)
+class RoadPoint:
+    latitude: float
+    longitude: float
+
+
+@dataclass(frozen=True)
 class Road:
     id: UUID
     name: str
@@ -21,3 +27,4 @@ class Road:
     length_meters: float
     speed_limit_kmh: float
     lanes: int = 1
+    geometry: tuple[RoadPoint, ...] = ()
