@@ -1,4 +1,4 @@
-from uuid import UUID
+from math import hypot
 
 from agents.decision import AgentDecision, AgentDecisionType
 from digital_twin.twin import DigitalTwin
@@ -32,13 +32,19 @@ class EmergencyAgent:
         return AgentDecision(
             decision_type=AgentDecisionType.PRIORITIZE_EMERGENCY,
             intersection_id=intersection.id,
-            reason=(
-                "Emergency vehicle is approaching the intersection."
-            ),
+            reason="Emergency vehicle is approaching the intersection.",
         )
 
-    def _find_target_intersection(self, vehicle):
-        if not self._digital_twin.get_state().intersections:
+    def _find_target_intersection(self, emergency_vehicle):
+        intersections = self._digital_twin.get_state().intersections
+
+        if not intersections:
             return None
 
-        return self._digital_twin.get_state().intersections[0]
+        return min(
+            intersections,
+            key=lambda intersection: hypot(
+                intersection.latitude - emergency_vehicle.latitude,
+                intersection.longitude - emergency_vehicle.longitude,
+            ),
+        )
