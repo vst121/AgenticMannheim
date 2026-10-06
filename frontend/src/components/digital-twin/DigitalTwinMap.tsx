@@ -29,6 +29,17 @@ export function DigitalTwinMap() {
       zoom: mapConfig.initialZoom,
     });
 
+    map.on("styleimagemissing", (e) => {
+      const id = e.id;
+      if (!map.hasImage(id)) {
+        map.addImage(id, {
+          width: 1,
+          height: 1,
+          data: new Uint8Array([0, 0, 0, 0]),
+        });
+      }
+    });
+
     mapRef.current = map;
 
     return () => {
