@@ -12,7 +12,7 @@ class CityEventType(StrEnum):
     TRAFFIC_INCIDENT = "traffic_incident"
     AGENT_DECISION_PROPOSED = "agent_decision_proposed"
     POLICY_REJECTED_ACTION = "policy_rejected_action"
-
+    AGENT_RUN_FAILED = "agent_run_failed"
 
 @dataclass(frozen=True)
 class CityEvent:
