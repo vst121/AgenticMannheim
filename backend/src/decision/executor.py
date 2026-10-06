@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from domain.event import CityEvent, CityEventType
 from infrastructure.persistence.repositories.event_repository import EventRepository
 from policy.policy import CityPolicy, PolicyDecision
@@ -16,7 +18,11 @@ class DecisionExecutor:
         self._simulation = simulation
         self._event_repository = event_repository
 
-    def execute(self, action: SimulationAction) -> PolicyDecision:
+    def execute(
+        self,
+        action: SimulationAction,
+        correlation_id: UUID,
+    ) -> PolicyDecision:
         decision = self._policy.validate(action)
 
         if not decision.allowed:
@@ -24,6 +30,7 @@ class DecisionExecutor:
                 CityEvent(
                     event_type=CityEventType.POLICY_REJECTED_ACTION,
                     aggregate_id=action.intersection_id,
+                    correlation_id=correlation_id,
                     payload={
                         "action_type": action.action_type.value,
                         "reason": decision.reason,
@@ -34,6 +41,9 @@ class DecisionExecutor:
 
             return decision
 
-        self._simulation.execute(action)
+        self._simulation.execute(
+            action=action,
+            correlation_id=correlation_id,
+        )
 
         return decision

@@ -26,6 +26,10 @@ class EventModel(Base):
         nullable=True,
     )
 
+    correlation_id: Mapped[UUID] = mapped_column(
+        nullable=False,
+    )
+
     payload: Mapped[dict[str, object]] = mapped_column(
         JSON,
         nullable=False,

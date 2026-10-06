@@ -22,4 +22,5 @@ class CityEvent:
         default_factory=lambda: datetime.now(timezone.utc)
     )
     aggregate_id: UUID | None = None
+    correlation_id: UUID = field(default_factory=uuid4)
     payload: dict[str, object] = field(default_factory=dict)

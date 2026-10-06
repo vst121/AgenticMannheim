@@ -9,6 +9,7 @@ def to_domain(model: EventModel) -> CityEvent:
         event_type=CityEventType(model.event_type),
         timestamp=model.timestamp,
         aggregate_id=model.aggregate_id,
+        correlation_id=model.correlation_id,
         payload=model.payload,
     )
 
@@ -19,5 +20,6 @@ def to_model(event: CityEvent) -> EventModel:
         event_type=event.event_type.value,
         timestamp=event.timestamp,
         aggregate_id=event.aggregate_id,
+        correlation_id=event.correlation_id,
         payload=event.payload,
     )
