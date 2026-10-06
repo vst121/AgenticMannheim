@@ -4,6 +4,7 @@ from decision.executor import DecisionExecutor
 from decision.translator import DecisionTranslator
 from domain.event import CityEvent, CityEventType
 from infrastructure.persistence.repositories.event_repository import EventRepository
+from policy.policy import PolicyDecision
 
 
 class AgentOrchestrator:
@@ -19,19 +20,17 @@ class AgentOrchestrator:
         self._executor = executor
         self._event_repository = event_repository
 
-    def run(self) -> bool:
+    def run(self) -> PolicyDecision | None:
         decision = self._agent.observe_and_decide()
 
         if decision is None:
-            return False
+            return None
 
         self._record_decision(decision)
 
         action = self._translator.translate(decision)
 
-        self._executor.execute(action)
-
-        return True
+        return self._executor.execute(action)
 
     def _record_decision(self, decision: AgentDecision) -> None:
         event = CityEvent(

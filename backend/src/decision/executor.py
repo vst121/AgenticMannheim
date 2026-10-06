@@ -1,8 +1,8 @@
+from domain.event import CityEvent, CityEventType
 from infrastructure.persistence.repositories.event_repository import EventRepository
-from policy.policy import CityPolicy
+from policy.policy import CityPolicy, PolicyDecision
 from simulation.actions import SimulationAction
 from simulation.engine import SimulationEngine
-from domain.event import CityEvent, CityEventType
 
 
 class DecisionExecutor:
@@ -16,7 +16,7 @@ class DecisionExecutor:
         self._simulation = simulation
         self._event_repository = event_repository
 
-    def execute(self, action: SimulationAction) -> None:
+    def execute(self, action: SimulationAction) -> PolicyDecision:
         decision = self._policy.validate(action)
 
         if not decision.allowed:
@@ -32,6 +32,8 @@ class DecisionExecutor:
                 )
             )
 
-            raise PermissionError(decision.reason)
+            return decision
 
         self._simulation.execute(action)
+
+        return decision
