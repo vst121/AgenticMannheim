@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from agents.run import AgentRun, AgentRunStatus
+from agents.run import AgentRun, AgentRunStatus, AgentType
 from ..models.agent_run import AgentRunModel
 
 
@@ -55,7 +55,7 @@ class AgentRunRepository:
     def _to_domain(model: AgentRunModel) -> AgentRun:
         return AgentRun(
             id=model.id,
-            agent_type=model.agent_type,
+            agent_type=AgentType(model.agent_type),
             status=AgentRunStatus(model.status),
             started_at=model.started_at,
             completed_at=model.completed_at,
@@ -65,7 +65,7 @@ class AgentRunRepository:
     def _to_model(run: AgentRun) -> AgentRunModel:
         return AgentRunModel(
             id=run.id,
-            agent_type=run.agent_type,
+            agent_type=run.agent_type.value,
             status=run.status.value,
             started_at=run.started_at,
             completed_at=run.completed_at,

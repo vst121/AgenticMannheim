@@ -4,7 +4,7 @@ from agents.decision import AgentDecision
 from agents.emergency_agent import EmergencyAgent
 from agents.exceptions import AgentRunFailed
 from agents.result import AgentExecutionResult
-from agents.run import AgentRun
+from agents.run import AgentRun, AgentRunStatus, AgentType
 from decision.executor import DecisionExecutor
 from decision.translator import DecisionTranslator
 from domain.event import CityEvent, CityEventType
@@ -31,7 +31,7 @@ class AgentOrchestrator:
 
     def run(self) -> AgentExecutionResult:
         agent_run = AgentRun.start(
-            agent_type="emergency",
+            agent_type=AgentType.EMERGENCY,
         )
 
         self._agent_run_repository.add(agent_run)
@@ -67,7 +67,7 @@ class AgentOrchestrator:
             else:
                 agent_run = agent_run.reject()
 
-            self._agent_run_repository.update(agent_run)    
+            self._agent_run_repository.update(agent_run)
 
             return AgentExecutionResult(
                 run_id=agent_run.id,
@@ -81,10 +81,9 @@ class AgentOrchestrator:
 
             raise AgentRunFailed(
                 run=agent_run,
-                started_at=agent_run.started_at,
                 cause=exc,
             ) from exc
-
+        
     def _record_decision(
         self,
         decision: AgentDecision,

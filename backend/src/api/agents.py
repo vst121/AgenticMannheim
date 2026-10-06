@@ -38,6 +38,7 @@ async def run_emergency_agent(
     try:
         with SessionLocal() as session:
             event_repository = EventRepository(session)
+            agent_run_repository = AgentRunRepository(session)
 
             simulation = SimulationEngine(
                 digital_twin=digital_twin,
@@ -55,6 +56,7 @@ async def run_emergency_agent(
                 translator=translator,
                 executor=executor,
                 event_repository=event_repository,
+                agent_run_repository=agent_run_repository,
             )
 
             result = orchestrator.run()

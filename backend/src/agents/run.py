@@ -4,6 +4,10 @@ from enum import StrEnum
 from uuid import UUID, uuid4
 
 
+class AgentType(StrEnum):
+    EMERGENCY = "emergency"
+
+
 class AgentRunStatus(StrEnum):
     STARTED = "started"
     COMPLETED = "completed"
@@ -14,13 +18,13 @@ class AgentRunStatus(StrEnum):
 @dataclass(frozen=True)
 class AgentRun:
     id: UUID
-    agent_type: str
+    agent_type: AgentType
     status: AgentRunStatus
     started_at: datetime
     completed_at: datetime | None = None
 
     @classmethod
-    def start(cls, agent_type: str) -> "AgentRun":
+    def start(cls, agent_type: AgentType) -> "AgentRun":
         return cls(
             id=uuid4(),
             agent_type=agent_type,
