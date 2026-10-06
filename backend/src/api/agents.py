@@ -92,6 +92,7 @@ async def run_emergency_agent(
     if result.agent_decision is None:
         return AgentExecutionResponse(
             run_id=str(result.run_id),
+            status=result.status.value,
             executed=False,
             allowed=False,
             reason="No emergency vehicle requiring action was found.",
@@ -99,6 +100,7 @@ async def run_emergency_agent(
 
     return AgentExecutionResponse(
         run_id=str(result.run_id),
+        status=result.status.value,
         executed=result.policy_decision.allowed,
         allowed=result.policy_decision.allowed,
         decision_type=result.agent_decision.decision_type.value,
