@@ -7,6 +7,7 @@ from infrastructure.persistence.database import SessionLocal
 
 from api.city import router as city_router
 from api.agents import router as agents_router
+from api.roads import router as roads_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +27,7 @@ app = FastAPI(
 
 app.include_router(city_router)
 app.include_router(agents_router)
+app.include_router(roads_router)
 
 
 @app.get("/health")

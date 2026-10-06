@@ -1,4 +1,4 @@
-from domain.road import Road, RoadType
+from domain.road import Road, RoadPoint, RoadType
 
 from ..models.road import RoadModel
 
@@ -13,6 +13,13 @@ def to_domain(model: RoadModel) -> Road:
         length_meters=model.length_meters,
         speed_limit_kmh=model.speed_limit_kmh,
         lanes=model.lanes,
+        geometry=tuple(
+            RoadPoint(
+                latitude=point["latitude"],
+                longitude=point["longitude"],
+            )
+            for point in (model.geometry or [])
+        ),
     )
 
 
@@ -26,4 +33,11 @@ def to_model(road: Road) -> RoadModel:
         length_meters=road.length_meters,
         speed_limit_kmh=road.speed_limit_kmh,
         lanes=road.lanes,
+        geometry=[
+            {
+                "latitude": point.latitude,
+                "longitude": point.longitude,
+            }
+            for point in road.geometry
+        ],
     )
