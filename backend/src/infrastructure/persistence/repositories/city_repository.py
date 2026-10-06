@@ -29,6 +29,18 @@ class CityRepository:
 
         return [to_domain(model) for model in models]
 
+    def get_by_name(self, name: str) -> CityMetadata | None:
+        statement = select(CityModel).where(
+            CityModel.name == name,
+        )
+
+        model = self._session.scalar(statement)
+
+        if model is None:
+            return None
+
+        return to_domain(model)    
+
     def add(self, city: CityMetadata) -> CityMetadata:
         model = to_model(city)
 
