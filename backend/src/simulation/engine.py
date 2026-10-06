@@ -46,6 +46,7 @@ class SimulationEngine:
                 aggregate_id=action.intersection_id,
                 payload={
                     "traffic_light_state": traffic_light_state.value,
+                    "vehicle_id": str(action.vehicle_id),
                 },
             )
         )

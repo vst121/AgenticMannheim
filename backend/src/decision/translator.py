@@ -16,6 +16,7 @@ class DecisionTranslator:
                 action_type=SimulationActionType.CHANGE_TRAFFIC_LIGHT,
                 intersection_id=decision.intersection_id,
                 traffic_light_state=TrafficLightState.GREEN.value,
+                vehicle_id=decision.vehicle_id,
             )
 
         raise ValueError(

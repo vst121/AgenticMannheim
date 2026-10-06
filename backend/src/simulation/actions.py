@@ -12,3 +12,4 @@ class SimulationAction:
     action_type: SimulationActionType
     intersection_id: UUID
     traffic_light_state: str
+    vehicle_id: UUID
