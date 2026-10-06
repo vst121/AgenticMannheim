@@ -13,29 +13,38 @@ class OSMMapper:
     ) -> tuple[list[Road], list[Intersection]]:
         node_usage: dict[int, int] = {}
 
+        # 1. Count usage across all roads
         for road in osm_roads:
             for node in road.nodes:
                 node_usage[node.id] = (
                     node_usage.get(node.id, 0) + 1
                 )
 
+        # 2. An intersection MUST be created for:
+        # - Any node shared by >= 2 roads (usage > 1)
+        # - The start and end nodes of EVERY road (endpoints/dead ends)
         intersection_nodes = {
             node_id
             for node_id, usage in node_usage.items()
             if usage > 1
         }
 
+        for road in osm_roads:
+            if road.nodes:
+                intersection_nodes.add(road.nodes[0].id)
+                intersection_nodes.add(road.nodes[-1].id)
+
+        # 3. Create Intersection domain entities
         intersections_by_node: dict[int, Intersection] = {}
 
         for road in osm_roads:
             for node in road.nodes:
-                if node.id not in intersection_nodes:
-                    continue
+                if node.id in intersection_nodes and node.id not in intersections_by_node:
+                    intersections_by_node[node.id] = (
+                        self._create_intersection(node)
+                    )
 
-                intersections_by_node[node.id] = (
-                    self._create_intersection(node)
-                )
-
+        # 4. Split roads at intersection boundaries
         roads: list[Road] = []
 
         for osm_road in osm_roads:
@@ -57,7 +66,6 @@ class OSMMapper:
         intersections: dict[int, Intersection],
     ) -> list[Road]:
         segments: list[Road] = []
-
         current_nodes: list[OSMNode] = []
 
         for node in osm_road.nodes:
