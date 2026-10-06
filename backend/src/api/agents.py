@@ -21,7 +21,7 @@ async def run_emergency_agent(request: Request) -> dict[str, bool]:
 
     agent = EmergencyAgent(digital_twin)
     translator = DecisionTranslator()
-    policy = CityPolicy()
+    policy = CityPolicy(digital_twin)
 
     with SessionLocal() as session:
         event_repository = EventRepository(session)
@@ -36,7 +36,7 @@ async def run_emergency_agent(request: Request) -> dict[str, bool]:
             simulation=simulation,
             event_repository=event_repository,
         )
-        
+
         orchestrator = AgentOrchestrator(
             agent=agent,
             translator=translator,
