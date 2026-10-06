@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from domain.city import CityMetadata
 from domain.intersection import Intersection, TrafficLightState
 from domain.road import Road
-from domain.vehicle import Vehicle
+from domain.vehicle import Vehicle, VehicleType
 
 
 @dataclass
@@ -42,3 +42,22 @@ class DigitalTwin:
             )
 
         intersection.traffic_light = state
+
+    def add_vehicle(
+        self,
+        vehicle_type: VehicleType,
+        latitude: float,
+        longitude: float,
+        speed_kmh: float = 0.0,
+    ) -> UUID:
+        vehicle = Vehicle(
+            vehicle_id=uuid4(),
+            vehicle_type=vehicle_type,
+            latitude=latitude,
+            longitude=longitude,
+            speed_kmh=speed_kmh,
+        )
+
+        self._state.vehicles.append(vehicle)
+
+        return vehicle.id

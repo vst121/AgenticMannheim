@@ -35,7 +35,16 @@ async def get_city_state(request: Request):
             }
             for road in state.roads
         ],
-        "vehicles": [],
+        "vehicles": [
+            {
+                "id": str(vehicle.id),
+                "type": vehicle.type.value,
+                "latitude": vehicle.latitude,
+                "longitude": vehicle.longitude,
+                "speed_kmh": vehicle.speed_kmh,
+            }
+            for vehicle in state.vehicles
+        ],        
         "intersections": [
             {
                 "id": str(intersection.id),

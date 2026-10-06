@@ -6,6 +6,7 @@ from infrastructure.persistence.repositories.intersection_repository import (
     IntersectionRepository,
 )
 from infrastructure.persistence.repositories.road_repository import RoadRepository
+from domain.vehicle import VehicleType
 
 
 class DigitalTwinLoader:
@@ -29,4 +30,16 @@ class DigitalTwinLoader:
             vehicles=[],
         )
 
-        return DigitalTwin(state)
+        digital_twin = DigitalTwin(state)
+
+        if state.intersections:
+            intersection = state.intersections[0]
+
+            digital_twin.add_vehicle(
+                vehicle_type=VehicleType.EMERGENCY,
+                latitude=intersection.latitude - 0.001,
+                longitude=intersection.longitude,
+                speed_kmh=40.0,
+            )
+
+        return digital_twin
