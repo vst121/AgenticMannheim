@@ -1,5 +1,6 @@
 from agents.decision import AgentDecision
 from agents.emergency_agent import EmergencyAgent
+from agents.result import AgentExecutionResult
 from decision.executor import DecisionExecutor
 from decision.translator import DecisionTranslator
 from domain.event import CityEvent, CityEventType
@@ -20,7 +21,7 @@ class AgentOrchestrator:
         self._executor = executor
         self._event_repository = event_repository
 
-    def run(self) -> PolicyDecision | None:
+    def run(self) -> AgentExecutionResult | None:
         decision = self._agent.observe_and_decide()
 
         if decision is None:
@@ -30,7 +31,12 @@ class AgentOrchestrator:
 
         action = self._translator.translate(decision)
 
-        return self._executor.execute(action)
+        policy_decision = self._executor.execute(action)
+
+        return AgentExecutionResult(
+            agent_decision=decision,
+            policy_decision=policy_decision,
+        )
 
     def _record_decision(self, decision: AgentDecision) -> None:
         event = CityEvent(

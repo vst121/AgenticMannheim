@@ -49,11 +49,11 @@ async def run_emergency_agent(
         )
 
 
-        policy_decision = orchestrator.run()
+        result = orchestrator.run()
 
         session.commit()
 
-        if policy_decision is None:
+        if result is None:
             return AgentExecutionResponse(
                 executed=False,
                 allowed=False,
@@ -61,7 +61,9 @@ async def run_emergency_agent(
             )
 
     return AgentExecutionResponse(
-        executed=policy_decision.allowed,
-        allowed=policy_decision.allowed,
-        reason=policy_decision.reason,
+        executed=result.policy_decision.allowed,
+        allowed=result.policy_decision.allowed,
+        decision_type=result.agent_decision.decision_type.value,
+        intersection_id=str(result.agent_decision.intersection_id),
+        reason=result.agent_decision.reason,
     )
