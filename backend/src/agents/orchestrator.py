@@ -46,6 +46,7 @@ class AgentOrchestrator:
                 "decision_type": decision.decision_type.value,
                 "reason": decision.reason,
                 "intersection_id": str(decision.intersection_id),
+                "vehicle_id": str(decision.vehicle_id),
             },
         )
 

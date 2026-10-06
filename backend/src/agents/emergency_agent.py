@@ -33,6 +33,7 @@ class EmergencyAgent:
             decision_type=AgentDecisionType.PRIORITIZE_EMERGENCY,
             intersection_id=intersection.id,
             reason="Emergency vehicle is approaching the intersection.",
+            vehicle_id=emergency_vehicle.id,
         )
 
     def _find_target_intersection(self, emergency_vehicle):

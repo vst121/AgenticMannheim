@@ -12,3 +12,4 @@ class AgentDecision:
     decision_type: AgentDecisionType
     intersection_id: UUID
     reason: str
+    vehicle_id: UUID
