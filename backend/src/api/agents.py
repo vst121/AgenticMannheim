@@ -89,9 +89,9 @@ async def run_emergency_agent(
             },
         ) from exc.cause
 
-    if result is None:
+    if result.agent_decision is None:
         return AgentExecutionResponse(
-            run_id=None,
+            run_id=str(result.run_id),
             executed=False,
             allowed=False,
             reason="No emergency vehicle requiring action was found.",

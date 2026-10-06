@@ -29,7 +29,7 @@ class AgentOrchestrator:
         self._event_repository = event_repository
         self._agent_run_repository = agent_run_repository
 
-    def run(self) -> AgentExecutionResult | None:
+    def run(self) -> AgentExecutionResult:
         agent_run = AgentRun.start(
             agent_type="emergency",
         )
@@ -40,7 +40,15 @@ class AgentOrchestrator:
             decision = self._agent.observe_and_decide()
 
             if decision is None:
-                return None
+                agent_run = agent_run.complete()
+                self._agent_run_repository.update(agent_run)
+
+                return AgentExecutionResult(
+                    run_id=agent_run.id,
+                    status=agent_run.status,
+                    agent_decision=None,
+                    policy_decision=None,
+                )
 
             self._record_decision(
                 decision=decision,
