@@ -1,8 +1,8 @@
-from uuid import UUID, uuid4
-
+from uuid import UUID
 from agents.decision import AgentDecision
 from agents.emergency_agent import EmergencyAgent
 from agents.result import AgentExecutionResult
+from agents.run import AgentRun
 from decision.executor import DecisionExecutor
 from decision.translator import DecisionTranslator
 from domain.event import CityEvent, CityEventType
@@ -23,7 +23,7 @@ class AgentOrchestrator:
         self._event_repository = event_repository
 
     def run(self) -> AgentExecutionResult | None:
-        correlation_id = uuid4()
+        agent_run = AgentRun.start()
 
         decision = self._agent.observe_and_decide()
 
@@ -32,17 +32,18 @@ class AgentOrchestrator:
 
         self._record_decision(
             decision=decision,
-            correlation_id=correlation_id,
+            correlation_id=agent_run.id,
         )
 
         action = self._translator.translate(decision)
 
         policy_decision = self._executor.execute(
             action=action,
-            correlation_id=correlation_id,
+            correlation_id=agent_run.id,
         )
 
         return AgentExecutionResult(
+            run_id=agent_run.id,
             agent_decision=decision,
             policy_decision=policy_decision,
         )

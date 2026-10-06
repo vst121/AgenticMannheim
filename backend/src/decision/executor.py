@@ -21,7 +21,7 @@ class DecisionExecutor:
     def execute(
         self,
         action: SimulationAction,
-        correlation_id: UUID,
+        run_id: UUID,
     ) -> PolicyDecision:
         decision = self._policy.validate(action)
 
@@ -30,7 +30,7 @@ class DecisionExecutor:
                 CityEvent(
                     event_type=CityEventType.POLICY_REJECTED_ACTION,
                     aggregate_id=action.intersection_id,
-                    correlation_id=correlation_id,
+                    correlation_id=run_id,
                     payload={
                         "action_type": action.action_type.value,
                         "reason": decision.reason,
@@ -43,7 +43,7 @@ class DecisionExecutor:
 
         self._simulation.execute(
             action=action,
-            correlation_id=correlation_id,
+            run_id=run_id,
         )
 
         return decision

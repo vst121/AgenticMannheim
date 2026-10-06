@@ -1,4 +1,4 @@
-from agents import orchestrator
+from agents import orchestrator, result
 from api.schemas import AgentExecutionResponse
 import digital_twin
 from fastapi import APIRouter, Request
@@ -55,12 +55,14 @@ async def run_emergency_agent(
 
         if result is None:
             return AgentExecutionResponse(
+                run_id=None,
                 executed=False,
                 allowed=False,
                 reason="No emergency vehicle requiring action was found.",
             )
-
+        
     return AgentExecutionResponse(
+        run_id=str(result.run_id),
         executed=result.policy_decision.allowed,
         allowed=result.policy_decision.allowed,
         decision_type=result.agent_decision.decision_type.value,

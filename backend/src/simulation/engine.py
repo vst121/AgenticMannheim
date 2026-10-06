@@ -20,12 +20,12 @@ class SimulationEngine:
     def execute(
         self,
         action: SimulationAction,
-        correlation_id: UUID,
+        run_id: UUID,
     ) -> None:
         if action.action_type == SimulationActionType.CHANGE_TRAFFIC_LIGHT:
             self._change_traffic_light(
                 action=action,
-                correlation_id=correlation_id,
+                correlation_id=run_id,
             )
             return
 
