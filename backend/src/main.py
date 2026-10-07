@@ -8,6 +8,7 @@ from infrastructure.persistence.database import SessionLocal
 from api.city import router as city_router
 from api.agents import router as agents_router
 from api.roads import router as roads_router
+from api.intersections import router as intersections_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,7 +39,7 @@ app.add_middleware(
 app.include_router(city_router)
 app.include_router(agents_router)
 app.include_router(roads_router)
-
+app.include_router(intersections_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
