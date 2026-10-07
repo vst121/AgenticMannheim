@@ -8,12 +8,18 @@ import { mapConfig } from "@/config/map";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import {
+  digitalTwinIntersectionLayer,
+  digitalTwinRoadLayer,
+} from "@/lib/map/layers";
+
+import {
+  digitalTwinIntersectionSource,
+  digitalTwinRoadSource,
+} from "@/lib/map/sources";
+
 maplibregl.setWorkerUrl(mapConfig.workerUrl);
 
-/**
- * Sanitizes shield filters in style layers to prevent worker type warnings.
- * Replaces direct ["get", "prop"] lookups with safe fallbacks ["coalesce", ["get", "prop"], 0].
- */
 function sanitizeStyleFilters(
   style: maplibregl.StyleSpecification,
 ): maplibregl.StyleSpecification {
@@ -21,22 +27,16 @@ function sanitizeStyleFilters(
 
   const sanitizeExpr = (expr: any): any => {
     if (!Array.isArray(expr)) return expr;
-    return expr.map((arg) => {
-      if (Array.isArray(arg)) {
-        if (arg[0] === "get" && typeof arg[1] === "string") {
-          return ["coalesce", arg, 0];
-        }
-        return sanitizeExpr(arg);
-      }
-      return arg;
-    });
+
+    if (expr[0] === "get" && typeof expr[1] === "string") {
+      return ["coalesce", expr, 0];
+    }
+
+    return expr.map((arg) => (Array.isArray(arg) ? sanitizeExpr(arg) : arg));
   };
 
   const cleanLayers = style.layers.map((layer) => {
-    if (
-      layer.filter &&
-      (layer.id.includes("shield") || layer.id.includes("highway"))
-    ) {
+    if (layer.filter) {
       return { ...layer, filter: sanitizeExpr(layer.filter) };
     }
     return layer;
@@ -56,14 +56,17 @@ export function DigitalTwinMap() {
 
     let isMounted = true;
 
-    // Intercept console noise on main thread
     const originalWarn = console.warn;
     const originalError = console.error;
 
     const filterMapLibreNoise = (args: unknown[]) => {
-      const msg = args.map(String).join(" ");
+      const msg = args
+        .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+        .join(" ");
       return (
         msg.includes("Expected value to be of type number") ||
+        msg.includes("found null instead") ||
+        msg.includes("highway-shield") ||
         msg.includes("could not be loaded")
       );
     };
@@ -83,7 +86,6 @@ export function DigitalTwinMap() {
         let styleInput: maplibregl.StyleSpecification | string =
           mapConfig.styleUrl;
 
-        // Load style JSON and clean layer filters before map initialization
         if (
           typeof mapConfig.styleUrl === "string" &&
           mapConfig.styleUrl.startsWith("http")
@@ -98,7 +100,6 @@ export function DigitalTwinMap() {
 
         if (!isMounted || !mapContainerRef.current) return;
 
-        // Initialize MapLibre
         const map = new maplibregl.Map({
           container: mapContainerRef.current,
           style: styleInput,
@@ -110,7 +111,14 @@ export function DigitalTwinMap() {
           localIdeographFontFamily: "sans-serif",
         });
 
-        // Resolve missing sprite icons with transparent 1x1 fallback
+        map.on("error", (e) => {
+          if (
+            e?.error?.message?.includes("Expected value to be of type number")
+          ) {
+            return;
+          }
+        });
+
         map.setMissingStyleImageResolver(() => {
           const canvas = document.createElement("canvas");
           canvas.width = 1;
@@ -126,39 +134,66 @@ export function DigitalTwinMap() {
 
         mapRef.current = map;
 
-        // Load GeoJSON layer once map style finishes loading
         map.on("load", async () => {
           try {
-            const response = await fetch(`${env.apiBaseUrl}/api/roads/geojson`);
+            if (!map.getSource("digital-twin-roads")) {
+              map.addSource("digital-twin-roads", digitalTwinRoadSource);
+            }
 
-            if (!response.ok) {
+            if (!map.getSource("digital-twin-intersections")) {
+              map.addSource(
+                "digital-twin-intersections",
+                digitalTwinIntersectionSource,
+              );
+            }
+
+            if (!map.getLayer("digital-twin-roads")) {
+              map.addLayer(digitalTwinRoadLayer);
+            }
+
+            if (!map.getLayer("digital-twin-intersections")) {
+              map.addLayer(digitalTwinIntersectionLayer);
+            }
+
+            const roadResponse = await fetch(
+              `${env.apiBaseUrl}/api/roads/geojson`,
+            );
+
+            if (!roadResponse.ok) {
               throw new Error(
-                `Failed to load road network: ${response.status}`,
+                `Failed to load road network: ${roadResponse.status}`,
               );
             }
 
             const roadGeoJson =
-              (await response.json()) as GeoJSON.FeatureCollection;
+              (await roadResponse.json()) as GeoJSON.FeatureCollection;
 
-            if (!map.getSource("digital-twin-roads")) {
-              map.addSource("digital-twin-roads", {
-                type: "geojson",
-                data: roadGeoJson,
-              });
+            const roadSource = map.getSource(
+              "digital-twin-roads",
+            ) as maplibregl.GeoJSONSource;
 
-              map.addLayer({
-                id: "digital-twin-roads",
-                type: "line",
-                source: "digital-twin-roads",
-                paint: {
-                  "line-color": "#061e46",
-                  "line-width": 3,
-                  "line-opacity": 0.8,
-                },
-              });
+            roadSource.setData(roadGeoJson);
+
+            const intersectionResponse = await fetch(
+              `${env.apiBaseUrl}/api/intersections/geojson`,
+            );
+
+            if (!intersectionResponse.ok) {
+              throw new Error(
+                `Failed to load intersections: ${intersectionResponse.status}`,
+              );
             }
+
+            const intersectionGeoJson =
+              (await intersectionResponse.json()) as GeoJSON.FeatureCollection;
+
+            const intersectionSource = map.getSource(
+              "digital-twin-intersections",
+            ) as maplibregl.GeoJSONSource;
+
+            intersectionSource.setData(intersectionGeoJson);
           } catch (error) {
-            originalError("Error loading road GeoJSON:", error);
+            originalError("Error loading Digital Twin GeoJSON:", error);
           }
         });
       } catch (err) {
