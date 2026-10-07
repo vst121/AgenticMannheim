@@ -9,7 +9,7 @@ from digital_twin.twin import DigitalTwin
 class IntersectionFeatureProperties(BaseModel):
     id: str
     name: str
-    traffic_light: str
+    traffic_light: str | None
 
 
 class IntersectionFeature(BaseModel):
@@ -53,7 +53,11 @@ async def get_intersections_geojson(
                 properties=IntersectionFeatureProperties(
                     id=str(intersection.id),
                     name=intersection.name,
-                    traffic_light=intersection.traffic_light.value,
+                    traffic_light=(
+                        intersection.traffic_light.value
+                        if intersection.traffic_light is not None
+                        else None
+                    ),
                 ),
             )
         )

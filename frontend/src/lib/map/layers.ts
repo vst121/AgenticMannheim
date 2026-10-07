@@ -1,6 +1,7 @@
 import type {
   CircleLayerSpecification,
   LineLayerSpecification,
+  SymbolLayerSpecification,
 } from "maplibre-gl";
 
 export const digitalTwinRoadLayer: LineLayerSpecification = {
@@ -14,26 +15,30 @@ export const digitalTwinRoadLayer: LineLayerSpecification = {
   },
 };
 
-export const digitalTwinIntersectionLayer: CircleLayerSpecification = {
+export const digitalTwinIntersectionLayer: SymbolLayerSpecification = {
   id: "digital-twin-intersections",
-  type: "circle",
+  type: "symbol",
   source: "digital-twin-intersections",
-  paint: {
-    "circle-radius": 4,
-    "circle-opacity": 0.9,
-    "circle-color": [
+  filter: [
+    "!=",
+    ["get", "traffic_light"],
+    null,
+  ],
+  layout: {
+    "icon-image": [
       "match",
       ["get", "traffic_light"],
       "red",
-      "#ef4444",
+      "traffic-light-red",
       "yellow",
-      "#facc15",
+      "traffic-light-yellow",
       "green",
-      "#22c55e",
-      "#6b7280",
+      "traffic-light-green",
+      "traffic-light-red",
     ],
-    "circle-stroke-color": "#ffffff",
-    "circle-stroke-width": 1,
+    "icon-size": 0.12,
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
   },
 };
 

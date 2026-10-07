@@ -138,6 +138,19 @@ export function DigitalTwinMap() {
 
         map.on("load", async () => {
           try {
+            const trafficLightImages = [
+              ["traffic-light-red", "/icons/traffic-light-red.png"],
+              ["traffic-light-yellow", "/icons/traffic-light-yellow.png"],
+              ["traffic-light-green", "/icons/traffic-light-green.png"],
+            ] as const;
+
+            for (const [imageId, imagePath] of trafficLightImages) {
+              if (!map.hasImage(imageId)) {
+                const image = await map.loadImage(imagePath);
+                map.addImage(imageId, image.data);
+              }
+            }
+
             if (!map.getSource("digital-twin-roads")) {
               map.addSource("digital-twin-roads", digitalTwinRoadSource);
             }
