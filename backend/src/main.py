@@ -38,7 +38,6 @@ async def lifespan(app: FastAPI):
         app.state.digital_twin = loader.load()
 
     app.state.simulation_state = SimulationState.create()
-        
     app.state.event_dispatcher = EventDispatcher()
     emergency_agent = EmergencyAgent(
         app.state.digital_twin,
@@ -49,11 +48,7 @@ async def lifespan(app: FastAPI):
         app.state.digital_twin,
     )
 
-    app.state.event_dispatcher.subscribe(
-        CityEventType.VEHICLE_REACHED_INTERSECTION.value,
-        handle_city_event,
-    )
-
+    # ✅ Define the handler FIRST
     def handle_city_event(event: CityEvent) -> None:
         try:
             with SessionLocal() as session:
@@ -115,6 +110,11 @@ async def lifespan(app: FastAPI):
                 "Agent run failed: run_id=%s",
                 exc.run_id,
             )
+
+    app.state.event_dispatcher.subscribe(
+        CityEventType.VEHICLE_REACHED_INTERSECTION.value,
+        handle_city_event,
+    )
 
     async def simulation_loop() -> None:
         while True:
