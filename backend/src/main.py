@@ -9,6 +9,7 @@ from api.city import router as city_router
 from api.agents import router as agents_router
 from api.roads import router as roads_router
 from api.intersections import router as intersections_router
+from api.vehicles import router as vehicles_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +41,7 @@ app.include_router(city_router)
 app.include_router(agents_router)
 app.include_router(roads_router)
 app.include_router(intersections_router)
+app.include_router(vehicles_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
