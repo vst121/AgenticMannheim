@@ -41,6 +41,12 @@ class CityPolicy:
                 reason="Target intersection does not exist.",
             )
 
+        if intersection.traffic_light is None:
+            return PolicyDecision(
+                allowed=False,
+                reason="The target intersection does not have a traffic light.",
+            )
+
         if intersection.traffic_light.value == action.traffic_light_state:
             return PolicyDecision(
                 allowed=False,

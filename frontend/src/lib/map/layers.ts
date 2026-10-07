@@ -42,15 +42,15 @@ export const digitalTwinIntersectionLayer: SymbolLayerSpecification = {
   },
 };
 
-export const digitalTwinVehicleLayer: CircleLayerSpecification = {
+export const digitalTwinVehicleLayer: SymbolLayerSpecification = {
   id: "digital-twin-vehicles",
-  type: "circle",
+  type: "symbol",
   source: "digital-twin-vehicles",
-  paint: {
-    "circle-color": "#f80909",
-    "circle-radius": 6,
-    "circle-opacity": 1,
-    "circle-stroke-width": 1,
+  layout: {
+    "icon-image": "emergency-vehicle",
+    "icon-size": 0.16,
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
   },
 };
 

@@ -151,6 +151,12 @@ export function DigitalTwinMap() {
               }
             }
 
+            if (!map.hasImage("emergency-vehicle")) {
+              const image = await map.loadImage("/icons/emergency-vehicle.png");
+
+              map.addImage("emergency-vehicle", image.data);
+            }
+
             if (!map.getSource("digital-twin-roads")) {
               map.addSource("digital-twin-roads", digitalTwinRoadSource);
             }
@@ -253,6 +259,41 @@ export function DigitalTwinMap() {
         mapRef.current.remove();
         mapRef.current = null;
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(async () => {
+      const map = mapRef.current;
+
+      if (!map || !map.isStyleLoaded()) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${env.apiBaseUrl}/api/vehicles/geojson`);
+
+        if (!response.ok) {
+          return;
+        }
+
+        const vehicleGeoJson =
+          (await response.json()) as GeoJSON.FeatureCollection;
+
+        const source = map.getSource("digital-twin-vehicles") as
+          | maplibregl.GeoJSONSource
+          | undefined;
+
+        if (source) {
+          source.setData(vehicleGeoJson);
+        }
+      } catch (error) {
+        console.error("Failed to update vehicles:", error);
+      }
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
     };
   }, []);
 
