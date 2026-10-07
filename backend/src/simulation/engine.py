@@ -6,6 +6,7 @@ from digital_twin.twin import DigitalTwin
 from infrastructure.persistence.repositories.event_repository import (
     EventRepository,
 )
+from simulation.event_dispatcher import EventDispatcher
 from simulation.state import SimulationState
 
 from .actions import SimulationAction, SimulationActionType
@@ -17,10 +18,12 @@ class SimulationEngine:
         digital_twin: DigitalTwin,
         event_repository: EventRepository,
         simulation_state: SimulationState,
+        event_dispatcher: EventDispatcher
     ) -> None:
         self._digital_twin = digital_twin
         self._event_repository = event_repository
         self._state = simulation_state
+        self._event_dispatcher = event_dispatcher
 
     def execute(
         self,
@@ -117,16 +120,17 @@ class SimulationEngine:
                 previous_position < road.length_meters
                 and vehicle.position_on_road_meters >= road.length_meters
             ):
-                self._event_repository.add(
-                    CityEvent(
-                        event_type=CityEventType.VEHICLE_REACHED_INTERSECTION,
-                        aggregate_id=road.end_intersection_id,
-                        payload={
-                            "vehicle_id": str(vehicle.id),
-                            "road_id": str(road.id),
-                        },
-                    )
+                event = CityEvent(
+                    event_type=CityEventType.VEHICLE_REACHED_INTERSECTION,
+                    aggregate_id=road.end_intersection_id,
+                    payload={
+                        "vehicle_id": str(vehicle.id),
+                        "road_id": str(road.id),
+                    },
                 )
+
+                self._event_repository.add(event)
+                self._event_dispatcher.dispatch(event)
 
     def _position_on_road(
         self,

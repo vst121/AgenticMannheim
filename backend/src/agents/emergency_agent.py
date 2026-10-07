@@ -1,7 +1,9 @@
 from math import hypot
 
 from agents.decision import AgentDecision, AgentDecisionType
+from uuid import UUID
 from digital_twin.twin import DigitalTwin
+from domain.event import CityEvent, CityEventType
 from domain.vehicle import VehicleType
 
 
@@ -48,4 +50,33 @@ class EmergencyAgent:
                 intersection.latitude - emergency_vehicle.latitude,
                 intersection.longitude - emergency_vehicle.longitude,
             ),
+        )
+
+    def handle_event(self, event: CityEvent) -> AgentDecision | None:
+        if event.event_type != CityEventType.VEHICLE_REACHED_INTERSECTION:
+            return None
+
+        vehicle_id = UUID(event.payload["vehicle_id"])
+        intersection_id = UUID(str(event.aggregate_id))
+
+        vehicle = next(
+            (
+                vehicle
+                for vehicle in self._digital_twin.get_state().vehicles
+                if vehicle.id == vehicle_id
+            ),
+            None,
+        )
+
+        if vehicle is None:
+            return None
+
+        if vehicle.type != VehicleType.EMERGENCY:
+            return None
+
+        return AgentDecision(
+            decision_type=AgentDecisionType.PRIORITIZE_EMERGENCY,
+            intersection_id=intersection_id,
+            reason="Emergency vehicle reached the intersection.",
+            vehicle_id=vehicle_id,
         )
