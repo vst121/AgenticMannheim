@@ -28,11 +28,11 @@ class OSMRoadLoader:
     async def load_roads(self) -> list[OSMRoad]:
         # Filter for drivable road types to dramatically speed up Overpass execution
         query = """
-        [out:json][timeout:180];
-        (
-          way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street"](49.4800,8.4550,49.4920,8.4780);
-        );
-        out body geom;
+            [out:json][timeout:180];
+            (
+            way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|service"](49.4800,8.4530,49.4950,8.4800);
+            );
+            out body geom;
         """
 
         endpoints = [
