@@ -10,6 +10,9 @@ class OSMNode:
     latitude: float
     longitude: float
 
+@dataclass(frozen=True)
+class OSMTrafficSignal:
+    node: OSMNode
 
 @dataclass(frozen=True)
 class OSMRoad:
@@ -25,12 +28,14 @@ class OSMRoadLoader:
     def __init__(self, overpass_url: str) -> None:
         self._overpass_url = overpass_url
 
-    async def load_roads(self) -> list[OSMRoad]:
-        # Filter for drivable road types to dramatically speed up Overpass execution
+    async def load_roads(
+        self,
+    ) -> tuple[list[OSMRoad], list[OSMTrafficSignal]]:
         query = """
             [out:json][timeout:180];
             (
             way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|service"](49.4800,8.4530,49.4950,8.4800);
+            node["highway"="traffic_signals"](49.4800,8.4530,49.4950,8.4800);
             );
             out body geom;
         """
@@ -42,7 +47,6 @@ class OSMRoadLoader:
             "https://overpass.openstreetmap.fr/api/interpreter",
         ]
 
-        # Deduplicate endpoints while keeping order
         unique_endpoints = list(dict.fromkeys(endpoints))
 
         data = None
@@ -54,7 +58,7 @@ class OSMRoadLoader:
             },
         ) as client:
             for url in unique_endpoints:
-                for attempt in range(2):  # Retry up to 2 times per endpoint
+                for attempt in range(2):  
                     try:
                         response = await client.post(
                             url,
@@ -78,9 +82,25 @@ class OSMRoadLoader:
                 "Failed to fetch OSM data from all Overpass API endpoints due to timeout or server errors."
             )
 
+        traffic_signals: list[OSMTrafficSignal] = []
         roads: list[OSMRoad] = []
 
         for element in data.get("elements", []):
+            if (
+                element.get("type") == "node"
+                and element.get("tags", {}).get("highway") == "traffic_signals"
+            ):
+                traffic_signals.append(
+                    OSMTrafficSignal(
+                        node=OSMNode(
+                            id=element["id"],
+                            latitude=element["lat"],
+                            longitude=element["lon"],
+                        )
+                    )
+                )
+                continue
+            
             geometry = element.get("geometry", [])
             node_ids = element.get("nodes", [])
 
@@ -114,7 +134,7 @@ class OSMRoadLoader:
                 )
             )
 
-        return roads
+        return roads, traffic_signals
 
     @staticmethod
     def _parse_speed(value: str | None) -> float:

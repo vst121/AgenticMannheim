@@ -26,7 +26,7 @@ class IntersectionModel(Base):
         nullable=False,
     )
 
-    traffic_light: Mapped[str] = mapped_column(
+    traffic_light: Mapped[str | None] = mapped_column(
         String(20),
-        nullable=False,
+        nullable=True,
     )

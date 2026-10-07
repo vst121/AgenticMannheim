@@ -1,5 +1,6 @@
+import asyncio
 from uuid import UUID
-
+import logging
 from domain.event import CityEvent, CityEventType
 from domain.intersection import TrafficLightState
 from digital_twin.twin import DigitalTwin
@@ -10,7 +11,11 @@ from simulation.event_dispatcher import EventDispatcher
 from simulation.state import SimulationState
 
 from .actions import SimulationAction, SimulationActionType
+from infrastructure.logging import configure_logging
 
+configure_logging()
+
+logger = logging.getLogger(__name__)
 
 class SimulationEngine:
     def __init__(
@@ -130,6 +135,13 @@ class SimulationEngine:
                 )
 
                 self._event_repository.add(event)
+
+                logger.info(
+                    "Vehicle reached intersection: vehicle_id=%s intersection_id=%s",
+                    vehicle.id,
+                    road.end_intersection_id,
+                )
+
                 self._event_dispatcher.dispatch(event)
 
     def _position_on_road(

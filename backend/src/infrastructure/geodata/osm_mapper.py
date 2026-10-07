@@ -1,16 +1,29 @@
 from uuid import uuid4
 
-from domain.intersection import Intersection
+from domain.intersection import (
+    Intersection,
+    TrafficLightState,
+)
 from domain.road import Road, RoadPoint, RoadType
 
-from .osm import OSMNode, OSMRoad
+from .osm import (
+    OSMNode,
+    OSMRoad,
+    OSMTrafficSignal,
+)
 
 
 class OSMMapper:
     def map_roads(
         self,
         osm_roads: list[OSMRoad],
+        traffic_signals: list[OSMTrafficSignal],
     ) -> tuple[list[Road], list[Intersection]]:
+        traffic_signal_node_ids = {
+            signal.node.id
+            for signal in traffic_signals
+        }
+
         node_usage: dict[int, int] = {}
 
         # 1. Count usage across all roads
@@ -22,7 +35,7 @@ class OSMMapper:
 
         # 2. An intersection MUST be created for:
         # - Any node shared by >= 2 roads (usage > 1)
-        # - The start and end nodes of EVERY road (endpoints/dead ends)
+        # - The start and end nodes of EVERY road
         intersection_nodes = {
             node_id
             for node_id, usage in node_usage.items()
@@ -39,9 +52,17 @@ class OSMMapper:
 
         for road in osm_roads:
             for node in road.nodes:
-                if node.id in intersection_nodes and node.id not in intersections_by_node:
+                if (
+                    node.id in intersection_nodes
+                    and node.id not in intersections_by_node
+                ):
                     intersections_by_node[node.id] = (
-                        self._create_intersection(node)
+                        self._create_intersection(
+                            node=node,
+                            has_traffic_light=(
+                                node.id in traffic_signal_node_ids
+                            ),
+                        )
                     )
 
         # 4. Split roads at intersection boundaries
@@ -142,12 +163,18 @@ class OSMMapper:
     @staticmethod
     def _create_intersection(
         node: OSMNode,
+        has_traffic_light: bool,
     ) -> Intersection:
         return Intersection(
             intersection_id=uuid4(),
             name=f"OSM Node {node.id}",
             latitude=node.latitude,
             longitude=node.longitude,
+            traffic_light=(
+                TrafficLightState.RED
+                if has_traffic_light
+                else None
+            ),
         )
 
     @staticmethod

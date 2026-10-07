@@ -9,7 +9,11 @@ def to_domain(model: IntersectionModel) -> Intersection:
         name=model.name,
         latitude=model.latitude,
         longitude=model.longitude,
-        traffic_light=TrafficLightState(model.traffic_light),
+        traffic_light=(
+            TrafficLightState(model.traffic_light)
+            if model.traffic_light is not None
+            else None
+        ),
     )
 
 
@@ -19,5 +23,9 @@ def to_model(intersection: Intersection) -> IntersectionModel:
         name=intersection.name,
         latitude=intersection.latitude,
         longitude=intersection.longitude,
-        traffic_light=intersection.traffic_light.value,
+        traffic_light=(
+            intersection.traffic_light.value
+            if intersection.traffic_light is not None
+            else None
+        ),
     )

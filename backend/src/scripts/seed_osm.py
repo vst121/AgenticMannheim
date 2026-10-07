@@ -18,16 +18,18 @@ async def main() -> None:
         overpass_url=settings.overpass_url,
     )
 
-    osm_roads = await loader.load_roads()
+    osm_roads, osm_traffic_signals = await loader.load_roads()
 
     print(f"Downloaded {len(osm_roads)} OSM roads.")
+    print(f"Downloaded {len(osm_traffic_signals)} OSM traffic signals.")
 
     mapper = OSMMapper()
 
     roads, intersections = mapper.map_roads(
         osm_roads,
+        osm_traffic_signals,
     )
-
+    
     print(f"Mapped {len(intersections)} intersections.")
     print(f"Mapped {len(roads)} road segments.")
 

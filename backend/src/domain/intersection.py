@@ -15,7 +15,7 @@ class Intersection:
         name: str,
         latitude: float,
         longitude: float,
-        traffic_light: TrafficLightState = TrafficLightState.RED,
+        traffic_light: TrafficLightState | None = None,
     ) -> None:
         self.id = intersection_id
         self.name = name

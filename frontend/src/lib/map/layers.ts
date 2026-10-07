@@ -19,8 +19,21 @@ export const digitalTwinIntersectionLayer: CircleLayerSpecification = {
   type: "circle",
   source: "digital-twin-intersections",
   paint: {
-    "circle-radius": 3,
+    "circle-radius": 4,
     "circle-opacity": 0.9,
+    "circle-color": [
+      "match",
+      ["get", "traffic_light"],
+      "red",
+      "#ef4444",
+      "yellow",
+      "#facc15",
+      "green",
+      "#22c55e",
+      "#6b7280",
+    ],
+    "circle-stroke-color": "#ffffff",
+    "circle-stroke-width": 1,
   },
 };
 
@@ -35,3 +48,4 @@ export const digitalTwinVehicleLayer: CircleLayerSpecification = {
     "circle-stroke-width": 1,
   },
 };
+

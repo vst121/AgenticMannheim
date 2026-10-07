@@ -48,7 +48,6 @@ async def lifespan(app: FastAPI):
         app.state.digital_twin,
     )
 
-    # ✅ Define the handler FIRST
     def handle_city_event(event: CityEvent) -> None:
         try:
             with SessionLocal() as session:
