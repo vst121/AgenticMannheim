@@ -33,7 +33,8 @@ async def create_emergency_scenario(
         (
             road
             for road in roads
-            if len(road.geometry) >= 2
+            if road.length_meters >= 200
+            and len(road.geometry) >= 2
         ),
         None,
     )
@@ -45,10 +46,9 @@ async def create_emergency_scenario(
         )
 
     start = road.geometry[0]
-    end = road.geometry[-1]
 
-    latitude = (start.latitude + end.latitude) / 2
-    longitude = (start.longitude + end.longitude) / 2
+    latitude = start.latitude
+    longitude = start.longitude
 
     vehicle_id = digital_twin.add_vehicle(
         vehicle_type=VehicleType.EMERGENCY,
@@ -56,7 +56,7 @@ async def create_emergency_scenario(
         longitude=longitude,
         speed_kmh=40.0,
         road_id=road.id,
-        position_on_road_meters=road.length_meters / 2,
+        position_on_road_meters=0.0,
     )
 
     return EmergencyScenarioResponse(
