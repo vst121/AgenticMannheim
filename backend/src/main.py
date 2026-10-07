@@ -1,8 +1,9 @@
 import asyncio
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+from infrastructure.logging import configure_logging
 
 from api.agents import router as agents_router
 from api.city import router as city_router
@@ -17,6 +18,9 @@ from infrastructure.persistence.repositories.event_repository import EventReposi
 from simulation.engine import SimulationEngine
 from simulation.state import SimulationState
 
+configure_logging()
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +45,12 @@ async def lifespan(app: FastAPI):
                     )
 
                     simulation.tick(1.0)
+
+                    # logger.info(
+                    #     "Digital Twin loaded: %s intersections, %s roads",
+                    #     len(app.state.digital_twin.get_state().intersections),
+                    #     len(app.state.digital_twin.get_state().roads),
+                    # )
 
                     session.commit()
 
