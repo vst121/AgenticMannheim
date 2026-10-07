@@ -11,11 +11,13 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import {
   digitalTwinIntersectionLayer,
   digitalTwinRoadLayer,
+  digitalTwinVehicleLayer,
 } from "@/lib/map/layers";
 
 import {
   digitalTwinIntersectionSource,
   digitalTwinRoadSource,
+  digitalTwinVehicleSource,
 } from "@/lib/map/sources";
 
 maplibregl.setWorkerUrl(mapConfig.workerUrl);
@@ -147,12 +149,20 @@ export function DigitalTwinMap() {
               );
             }
 
+            if (!map.getSource("digital-twin-vehicles")) {
+              map.addSource("digital-twin-vehicles", digitalTwinVehicleSource);
+            }
+
             if (!map.getLayer("digital-twin-roads")) {
               map.addLayer(digitalTwinRoadLayer);
             }
 
             if (!map.getLayer("digital-twin-intersections")) {
               map.addLayer(digitalTwinIntersectionLayer);
+            }
+
+            if (!map.getLayer("digital-twin-vehicles")) {
+              map.addLayer(digitalTwinVehicleLayer);
             }
 
             const roadResponse = await fetch(
@@ -192,6 +202,25 @@ export function DigitalTwinMap() {
             ) as maplibregl.GeoJSONSource;
 
             intersectionSource.setData(intersectionGeoJson);
+
+            const vehicleResponse = await fetch(
+              `${env.apiBaseUrl}/api/vehicles/geojson`,
+            );
+
+            if (!vehicleResponse.ok) {
+              throw new Error(
+                `Failed to load vehicles: ${vehicleResponse.status}`,
+              );
+            }
+
+            const vehicleGeoJson =
+              (await vehicleResponse.json()) as GeoJSON.FeatureCollection;
+
+            const vehicleSource = map.getSource(
+              "digital-twin-vehicles",
+            ) as maplibregl.GeoJSONSource;
+
+            vehicleSource.setData(vehicleGeoJson);
           } catch (error) {
             originalError("Error loading Digital Twin GeoJSON:", error);
           }
