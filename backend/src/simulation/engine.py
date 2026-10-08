@@ -1,9 +1,11 @@
 import asyncio
+from random import random
 from uuid import UUID
 import logging
 from domain.event import CityEvent, CityEventType
 from domain.intersection import TrafficLightState
 from digital_twin.twin import DigitalTwin
+from domain.road import Road
 from infrastructure.persistence.repositories.event_repository import (
     EventRepository,
 )
@@ -90,6 +92,14 @@ class SimulationEngine:
             for road in twin_state.roads
         }
 
+        outgoing_roads_by_intersection: dict[UUID, list[Road]] = {}
+
+        for road in twin_state.roads:
+            outgoing_roads_by_intersection.setdefault(
+                road.start_intersection_id,
+                [],
+            ).append(road)
+
         for vehicle in twin_state.vehicles:
             if vehicle.road_id is None:
                 continue
@@ -97,34 +107,53 @@ class SimulationEngine:
             if vehicle.speed_kmh <= 0:
                 continue
 
-            road = roads_by_id.get(vehicle.road_id)
-
-            if road is None:
-                continue
-
-            distance_meters = (
+            remaining_distance = (
                 vehicle.speed_kmh * 1000 / 3600
             ) * seconds
 
-            previous_position = vehicle.position_on_road_meters
+            while remaining_distance > 0:
+                road = roads_by_id.get(vehicle.road_id)
 
-            vehicle.position_on_road_meters = min(
-                vehicle.position_on_road_meters + distance_meters,
-                road.length_meters,
-            )
+                if road is None:
+                    break
 
-            latitude, longitude = self._position_on_road(
-                road=road,
-                position_meters=vehicle.position_on_road_meters,
-            )
+                distance_to_end = (
+                    road.length_meters
+                    - vehicle.position_on_road_meters
+                )
 
-            vehicle.latitude = latitude
-            vehicle.longitude = longitude
+                if remaining_distance < distance_to_end:
+                    vehicle.position_on_road_meters += (
+                        remaining_distance
+                    )
 
-            if (
-                previous_position < road.length_meters
-                and vehicle.position_on_road_meters >= road.length_meters
-            ):
+                    remaining_distance = 0
+
+                    latitude, longitude = self._position_on_road(
+                        road=road,
+                        position_meters=vehicle.position_on_road_meters,
+                    )
+
+                    vehicle.latitude = latitude
+                    vehicle.longitude = longitude
+
+                    continue
+
+                # Vehicle reached the end of the current road.
+                remaining_distance -= distance_to_end
+
+                vehicle.position_on_road_meters = (
+                    road.length_meters
+                )
+
+                latitude, longitude = self._position_on_road(
+                    road=road,
+                    position_meters=road.length_meters,
+                )
+
+                vehicle.latitude = latitude
+                vehicle.longitude = longitude
+
                 event = CityEvent(
                     event_type=CityEventType.VEHICLE_REACHED_INTERSECTION,
                     aggregate_id=road.end_intersection_id,
@@ -137,12 +166,49 @@ class SimulationEngine:
                 self._event_repository.add(event)
 
                 logger.info(
-                    "Vehicle reached intersection: vehicle_id=%s intersection_id=%s",
+                    "Vehicle reached intersection: "
+                    "vehicle_id=%s intersection_id=%s",
                     vehicle.id,
                     road.end_intersection_id,
                 )
 
                 self._event_dispatcher.dispatch(event)
+
+                # Find roads leaving the current intersection.
+                outgoing_roads = outgoing_roads_by_intersection.get(
+                    road.end_intersection_id,
+                    [],
+                )
+
+                if not outgoing_roads:
+                    # There is nowhere else to go.
+                    vehicle.speed_kmh = 0.0
+                    break
+
+                # For now, choose one connected outgoing road.
+                next_road = next(
+                    (
+                        candidate
+                        for candidate in outgoing_roads
+                        if candidate.id != road.id
+                    ),
+                    None,
+                )
+
+                if next_road is None:
+                    vehicle.speed_kmh = 0.0
+                    break                
+
+                vehicle.road_id = next_road.id
+                vehicle.position_on_road_meters = 0.0
+
+                latitude, longitude = self._position_on_road(
+                    road=next_road,
+                    position_meters=0.0,
+                )
+
+                vehicle.latitude = latitude
+                vehicle.longitude = longitude
 
     def _position_on_road(
         self,

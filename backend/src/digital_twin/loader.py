@@ -30,6 +30,18 @@ class DigitalTwinLoader:
         intersections = intersection_repository.get_all()
         roads = road_repository.get_all()
 
+        if roads:
+            print(
+                "FIRST ROAD:",
+                roads[0].name,
+                roads[0].id,
+                "geometry points:",
+                len(roads[0].geometry),
+                "first point:",
+                roads[0].geometry[0]
+                if roads[0].geometry
+                else None,
+            )
 
         print(
             f"Digital Twin loaded: "

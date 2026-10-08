@@ -12,6 +12,8 @@ MAP_MAX_LATITUDE = 49.4950
 MAP_MIN_LONGITUDE = 8.4530
 MAP_MAX_LONGITUDE = 8.4800
 
+MIN_DISTANCE_FROM_INTERSECTION_METERS = 50.0
+
 
 class EmergencyScenarioResponse(BaseModel):
     vehicle_id: str
@@ -34,57 +36,149 @@ async def create_emergency_scenario(
     request: Request,
 ) -> EmergencyScenarioResponse:
     digital_twin: DigitalTwin = request.app.state.digital_twin
+    twin_state = digital_twin.get_state()
 
-    roads = [
+    intersections_by_id = {
+        intersection.id: intersection
+        for intersection in twin_state.intersections
+    }
+
+    candidate_roads = [
         road
-        for road in digital_twin.get_state().roads
-        if road.length_meters >= 200
-        and len(road.geometry) >= 2
-        and _road_is_inside_map(road)
+        for road in twin_state.roads
+        if _is_valid_emergency_road(
+            road,
+            intersections_by_id,
+        )
     ]
 
-    if not roads:
+    print(
+        "Emergency scenario candidate roads:",
+        len(candidate_roads),
+    )
+
+    if not candidate_roads:
         raise HTTPException(
             status_code=404,
-            detail="No suitable road is available inside the map area.",
+            detail=(
+                "No suitable road is available for "
+                "an emergency scenario."
+            ),
         )
 
-    road = random.choice(roads)
+    # Randomly try valid roads until we find a valid
+    # starting position inside the Digital Twin map.
+    random.shuffle(candidate_roads)
 
-    max_start_position = road.length_meters * 0.8
+    for road in candidate_roads:
+        position = _random_start_position(road)
 
-    position_on_road_meters = random.uniform(
-        0.0,
-        max_start_position,
+        if position is None:
+            continue
+
+        position_on_road_meters, latitude, longitude = position
+
+        vehicle_id = digital_twin.add_vehicle(
+            vehicle_type=VehicleType.EMERGENCY,
+            latitude=latitude,
+            longitude=longitude,
+            speed_kmh=40.0,
+            road_id=road.id,
+            position_on_road_meters=position_on_road_meters,
+        )
+
+        return EmergencyScenarioResponse(
+            vehicle_id=str(vehicle_id),
+            road_id=str(road.id),
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+    raise HTTPException(
+        status_code=404,
+        detail=(
+            "Suitable emergency roads exist, "
+            "but no valid starting position was found "
+            "inside the map area."
+        ),
     )
 
-    latitude, longitude = _position_on_road(
-        road=road,
-        position_meters=position_on_road_meters,
+
+def _is_valid_emergency_road(
+    road,
+    intersections_by_id,
+) -> bool:
+    if len(road.geometry) < 2:
+        return False
+
+    destination = intersections_by_id.get(
+        road.end_intersection_id,
     )
 
-    vehicle_id = digital_twin.add_vehicle(
-        vehicle_type=VehicleType.EMERGENCY,
-        latitude=latitude,
-        longitude=longitude,
-        speed_kmh=40.0,
-        road_id=road.id,
-        position_on_road_meters=position_on_road_meters,
+    if destination is None:
+        return False
+
+    # The emergency vehicle must eventually reach
+    # an intersection controlled by a traffic light.
+    if destination.traffic_light is None:
+        return False
+
+    # The road must be long enough to place the vehicle
+    # at least 50 meters before the destination.
+    if road.length_meters <= MIN_DISTANCE_FROM_INTERSECTION_METERS:
+        return False
+
+    return True
+
+
+def _random_start_position(
+    road,
+) -> tuple[float, float, float] | None:
+    # Keep the vehicle at least 50 meters from the
+    # destination intersection.
+    max_position = (
+        road.length_meters
+        - MIN_DISTANCE_FROM_INTERSECTION_METERS
     )
 
-    return EmergencyScenarioResponse(
-        vehicle_id=str(vehicle_id),
-        road_id=str(road.id),
-        latitude=latitude,
-        longitude=longitude,
+    if max_position <= 0:
+        return None
+
+    # Avoid spawning immediately at the beginning
+    # of the road segment.
+    min_position = min(
+        road.length_meters * 0.1,
+        max_position,
     )
 
+    for _ in range(10):
+        position = random.uniform(
+            min_position,
+            max_position,
+        )
 
-def _road_is_inside_map(road) -> bool:
-    return all(
-        MAP_MIN_LATITUDE <= point.latitude <= MAP_MAX_LATITUDE
-        and MAP_MIN_LONGITUDE <= point.longitude <= MAP_MAX_LONGITUDE
-        for point in road.geometry
+        latitude, longitude = _position_on_road(
+            road=road,
+            position_meters=position,
+        )
+
+        if _is_inside_map(latitude, longitude):
+            return (
+                position,
+                latitude,
+                longitude,
+            )
+
+    return None
+
+
+def _is_inside_map(
+    latitude: float,
+    longitude: float,
+) -> bool:
+    return (
+        MAP_MIN_LATITUDE <= latitude <= MAP_MAX_LATITUDE
+        and MAP_MIN_LONGITUDE <= longitude <= MAP_MAX_LONGITUDE
     )
 
 
