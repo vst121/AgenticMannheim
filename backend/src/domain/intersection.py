@@ -22,3 +22,4 @@ class Intersection:
         self.latitude = latitude
         self.longitude = longitude
         self.traffic_light = traffic_light
+        self.emergency_priority = False

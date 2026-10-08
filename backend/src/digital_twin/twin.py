@@ -26,6 +26,7 @@ class DigitalTwin:
         self,
         intersection_id: UUID,
         state: TrafficLightState,
+        emergency_priority: bool = False,
     ) -> None:
         intersection = next(
             (
@@ -41,7 +42,14 @@ class DigitalTwin:
                 f"Intersection '{intersection_id}' was not found."
             )
 
+        if intersection.traffic_light is None:
+            raise ValueError(
+                f"Intersection '{intersection_id}' "
+                "does not have a traffic light."
+            )
+
         intersection.traffic_light = state
+        intersection.emergency_priority = emergency_priority
 
     def add_vehicle(
         self,

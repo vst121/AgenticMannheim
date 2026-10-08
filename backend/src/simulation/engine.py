@@ -1,11 +1,11 @@
-import asyncio
-from random import random
-from uuid import UUID
 import logging
+from uuid import UUID
+
 from domain.event import CityEvent, CityEventType
 from domain.intersection import TrafficLightState
-from digital_twin.twin import DigitalTwin
 from domain.road import Road
+from digital_twin.twin import DigitalTwin
+from infrastructure.logging import configure_logging
 from infrastructure.persistence.repositories.event_repository import (
     EventRepository,
 )
@@ -13,11 +13,16 @@ from simulation.event_dispatcher import EventDispatcher
 from simulation.state import SimulationState
 
 from .actions import SimulationAction, SimulationActionType
-from infrastructure.logging import configure_logging
+
 
 configure_logging()
 
 logger = logging.getLogger(__name__)
+
+
+EMERGENCY_GREEN_DURATION_SECONDS = 3.0
+EMERGENCY_YELLOW_DURATION_SECONDS = 2.0
+
 
 class SimulationEngine:
     def __init__(
@@ -25,12 +30,14 @@ class SimulationEngine:
         digital_twin: DigitalTwin,
         event_repository: EventRepository,
         simulation_state: SimulationState,
-        event_dispatcher: EventDispatcher
+        event_dispatcher: EventDispatcher,
     ) -> None:
         self._digital_twin = digital_twin
         self._event_repository = event_repository
         self._state = simulation_state
         self._event_dispatcher = event_dispatcher
+
+        self._emergency_light_started_at: dict[UUID, float] = {}
 
     def execute(
         self,
@@ -48,6 +55,49 @@ class SimulationEngine:
             f"Unsupported simulation action: {action.action_type}"
         )
 
+    def change_traffic_light(
+        self,
+        intersection_id: UUID,
+        state: TrafficLightState,
+        emergency_priority: bool = False,
+    ) -> None:
+        intersection = next(
+            (
+                intersection
+                for intersection in self._digital_twin.get_state().intersections
+                if intersection.id == intersection_id
+            ),
+            None,
+        )
+
+        if intersection is None:
+            raise ValueError(
+                f"Intersection '{intersection_id}' was not found."
+            )
+
+        if intersection.traffic_light is None:
+            raise ValueError(
+                f"Intersection '{intersection_id}' "
+                "does not have a traffic light."
+            )
+
+        previous_state = intersection.traffic_light
+
+        intersection.traffic_light = state
+        intersection.emergency_priority = emergency_priority
+
+        print(
+            "TRAFFIC LIGHT CHANGED:",
+            f"intersection={intersection_id}",
+            f"{previous_state.value} -> {state.value}",
+            f"emergency_priority={emergency_priority}",
+        )
+
+    def tick(self, seconds: float = 1.0) -> None:
+        self._state.advance(seconds)
+        self._move_vehicles(seconds)
+        self._update_emergency_traffic_lights()
+
     def _change_traffic_light(
         self,
         action: SimulationAction,
@@ -55,7 +105,7 @@ class SimulationEngine:
     ) -> None:
         try:
             traffic_light_state = TrafficLightState(
-                action.traffic_light_state
+                action.traffic_light_state,
             )
         except ValueError as exc:
             raise ValueError(
@@ -66,6 +116,19 @@ class SimulationEngine:
         self._digital_twin.change_traffic_light(
             intersection_id=action.intersection_id,
             state=traffic_light_state,
+            emergency_priority=True,
+        )
+
+        self._emergency_light_started_at[action.intersection_id] = (
+            self._state.current_time.timestamp()
+        )
+
+        logger.info(
+            "Traffic light changed by simulation: "
+            "intersection_id=%s state=%s emergency_priority=%s",
+            action.intersection_id,
+            traffic_light_state.value,
+            True,
         )
 
         self._event_repository.add(
@@ -79,10 +142,6 @@ class SimulationEngine:
                 },
             )
         )
-
-    def tick(self, seconds: float = 1.0) -> None:
-        self._state.advance(seconds)
-        self._move_vehicles(seconds)
 
     def _move_vehicles(self, seconds: float) -> None:
         twin_state = self._digital_twin.get_state()
@@ -197,7 +256,7 @@ class SimulationEngine:
 
                 if next_road is None:
                     vehicle.speed_kmh = 0.0
-                    break                
+                    break
 
                 vehicle.road_id = next_road.id
                 vehicle.position_on_road_meters = 0.0
@@ -209,6 +268,63 @@ class SimulationEngine:
 
                 vehicle.latitude = latitude
                 vehicle.longitude = longitude
+
+    def _update_emergency_traffic_lights(self) -> None:
+        twin_state = self._digital_twin.get_state()
+        current_timestamp = self._state.current_time.timestamp()
+
+        for intersection in twin_state.intersections:
+            if not intersection.emergency_priority:
+                continue
+
+            started_at = self._emergency_light_started_at.get(
+                intersection.id
+            )
+
+            if started_at is None:
+                continue
+
+            elapsed = current_timestamp - started_at
+
+            if (
+                intersection.traffic_light
+                == TrafficLightState.GREEN
+                and elapsed >= EMERGENCY_GREEN_DURATION_SECONDS
+            ):
+                intersection.traffic_light = TrafficLightState.YELLOW
+
+                logger.info(
+                    "Emergency green phase ended: "
+                    "intersection_id=%s state=yellow elapsed=%.1fs",
+                    intersection.id,
+                    elapsed,
+                )
+
+                continue
+
+            if (
+                intersection.traffic_light
+                == TrafficLightState.YELLOW
+                and elapsed
+                >= (
+                    EMERGENCY_GREEN_DURATION_SECONDS
+                    + EMERGENCY_YELLOW_DURATION_SECONDS
+                )
+            ):
+                intersection.traffic_light = TrafficLightState.RED
+                intersection.emergency_priority = False
+
+                self._emergency_light_started_at.pop(
+                    intersection.id,
+                    None,
+                )
+
+                logger.info(
+                    "Emergency priority ended: "
+                    "intersection_id=%s state=red elapsed=%.1fs",
+                    intersection.id,
+                    elapsed,
+                )
 
     def _position_on_road(
         self,

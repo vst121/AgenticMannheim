@@ -297,5 +297,35 @@ export function DigitalTwinMap() {
     };
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(async () => {
+      const map = mapRef.current;
+      if (!map || !map.isStyleLoaded()) return;
+
+      try {
+        const response = await fetch(
+          `${env.apiBaseUrl}/api/intersections/geojson`,
+        );
+
+        if (!response.ok) return;
+
+        const intersectionGeoJson =
+          (await response.json()) as GeoJSON.FeatureCollection;
+
+        const source = map.getSource("digital-twin-intersections") as
+          | maplibregl.GeoJSONSource
+          | undefined;
+
+        if (source) {
+          source.setData(intersectionGeoJson);
+        }
+      } catch (error) {
+        console.error("Failed to update intersections:", error);
+      }
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   return <div ref={mapContainerRef} className="h-full w-full" />;
 }
