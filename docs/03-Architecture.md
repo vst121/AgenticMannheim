@@ -261,7 +261,7 @@ Responsibilities are separated through modules and explicit boundaries without i
 │                         FRONTEND                            │
 │                         Next.js                             │
 │                                                             │
-│  Map │ Traffic Control │ Citizen Participation │ Events    │
+│  Map │ Traffic Control │ Citizen Participation │ Events     │
 │  Agentic State │ Scenario UI │ Citizen Feedback             │
 └─────────────────────────────┬───────────────────────────────┘
                               │
@@ -275,12 +275,12 @@ Responsibilities are separated through modules and explicit boundaries without i
 │  API                                                        │
 │   │                                                         │
 │   ├── Digital Twin                                          │
-│   ├── Simulation                                             │
-│   ├── Events                                                 │
-│   ├── Agents                                                 │
-│   ├── Decision                                               │
-│   ├── Policy                                                 │
-│   └── Persistence                                            │
+│   ├── Simulation                                            │
+│   ├── Events                                                │
+│   ├── Agents                                                │
+│   ├── Decision                                              │
+│   ├── Policy                                                │
+│   └── Persistence                                           │
 │                                                             │
 └─────────────────────────────┬───────────────────────────────┘
                               │
@@ -1075,21 +1075,21 @@ AI components must not become authoritative owners of application state.
 The architectural boundary is explicit:
 
 ```text
-┌─────────────────────────────┐
-│          Next.js            │
-│                             │
+┌────────────────────────────┐
+│          Next.js           │
+│                            │
 │ Presentation               │
 │ Visualization              │
 │ Interaction                │
 │ UI State                   │
 │ Citizen Interaction        │
-└──────────────┬──────────────┘
+└──────────────┬─────────────┘
                │
           API Contract
                │
-┌──────────────▼──────────────┐
-│          FastAPI            │
-│                             │
+┌──────────────▼─────────────┐
+│          FastAPI           │
+│                            │
 │ Domain                     │
 │ Digital Twin               │
 │ Simulation                 │
@@ -1099,7 +1099,7 @@ The architectural boundary is explicit:
 │ Policy                     │
 │ Persistence                │
 │ Authoritative State        │
-└─────────────────────────────┘
+└────────────────────────────┘
 ```
 
 The frontend may request actions.
