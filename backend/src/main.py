@@ -13,6 +13,11 @@ from infrastructure.logging import configure_logging
 from infrastructure.persistence.repositories.agent_run_repository import AgentRunRepository
 from policy.policy import CityPolicy
 from simulation.event_dispatcher import EventDispatcher
+from infrastructure.persistence.database import SessionLocal
+from infrastructure.persistence.repositories.event_repository import EventRepository
+from simulation.engine import SimulationEngine
+from simulation.state import SimulationState
+from digital_twin.loader import DigitalTwinLoader
 
 from api.agents import router as agents_router
 from api.city import router as city_router
@@ -21,11 +26,7 @@ from api.roads import router as roads_router
 from api.scenarios import router as scenarios_router
 from api.simulation import router as simulation_router
 from api.vehicles import router as vehicles_router
-from digital_twin.loader import DigitalTwinLoader
-from infrastructure.persistence.database import SessionLocal
-from infrastructure.persistence.repositories.event_repository import EventRepository
-from simulation.engine import SimulationEngine
-from simulation.state import SimulationState
+from api.citizen_requests import router as citizen_request_router
 
 configure_logging()
 
@@ -185,7 +186,7 @@ app.include_router(intersections_router)
 app.include_router(vehicles_router)
 app.include_router(scenarios_router)
 app.include_router(simulation_router)
-
+app.include_router(citizen_request_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
