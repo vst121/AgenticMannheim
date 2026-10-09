@@ -1,11 +1,15 @@
 
 from uuid import UUID
 
+from agents.investigation_agent import InvestigationAgent
+from digital_twin.twin import DigitalTwin
 from domain.citizen_request import (
     CitizenRequest,
     CitizenRequestType,
+    GeoLocation,
 )
 from domain.event import CityEvent, CityEventType
+from domain.investigation import Investigation
 from infrastructure.persistence.repositories.citizen_request_repository import (
     CitizenRequestRepository,
 )
@@ -44,10 +48,7 @@ class CitizenParticipationService:
         request = CitizenRequest(
             request_type=request_type,
             description=description,
-            location=__import__(
-                "domain.citizen_request",
-                fromlist=["GeoLocation"],
-            ).GeoLocation(
+            location=GeoLocation(
                 latitude=latitude,
                 longitude=longitude,
             ),
@@ -71,3 +72,23 @@ class CitizenParticipationService:
         )
 
         return saved_request
+
+    def investigate_request(
+        self,
+        request_id: UUID,
+        digital_twin: DigitalTwin,
+    ) -> Investigation:
+        request = self._request_repository.get_by_id(request_id)
+
+        if request is None:
+            raise ValueError(
+                f"Citizen request '{request_id}' was not found."
+            )
+
+        agent = InvestigationAgent(
+            digital_twin=digital_twin,
+            request_repository=self._request_repository,
+            event_repository=self._event_repository,
+        )
+
+        return agent.investigate(request)

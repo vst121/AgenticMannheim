@@ -1,8 +1,7 @@
 
 from datetime import datetime
 from uuid import UUID
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -20,6 +19,8 @@ from infrastructure.persistence.repositories.event_repository import (
 from services.citizen_participation_service import (
     CitizenParticipationService,
 )
+from digital_twin.twin import DigitalTwin
+from domain.investigation import Investigation
 
 router = APIRouter(
     prefix="/api/citizen-requests",
@@ -63,6 +64,46 @@ class CitizenRequestResponse(BaseModel):
         )
 
 
+class InvestigationFindingResponse(BaseModel):
+    category: str
+    description: str
+    source: str
+    confidence: float
+
+
+class InvestigationResponse(BaseModel):
+    id: UUID
+    request_id: UUID
+    status: str
+    findings: list[InvestigationFindingResponse]
+    related_request_ids: list[UUID]
+    related_event_ids: list[UUID]
+    correlation_id: UUID
+
+    @classmethod
+    def from_domain(
+        cls,
+        investigation: Investigation,
+    ) -> "InvestigationResponse":
+        return cls(
+            id=investigation.id,
+            request_id=investigation.request_id,
+            status=investigation.status.value,
+            findings=[
+                InvestigationFindingResponse(
+                    category=finding.category,
+                    description=finding.description,
+                    source=finding.source,
+                    confidence=finding.confidence,
+                )
+                for finding in investigation.findings
+            ],
+            related_request_ids=investigation.related_request_ids,
+            related_event_ids=investigation.related_event_ids,
+            correlation_id=investigation.correlation_id,
+        )
+
+
 @router.post(
     "",
     response_model=CitizenRequestResponse,
@@ -91,3 +132,33 @@ def submit_citizen_request(
         ) from exc
 
     return CitizenRequestResponse.from_domain(request)
+
+
+@router.get(
+    "/{request_id}/investigation",
+    response_model=InvestigationResponse,
+)
+def investigate_citizen_request(
+    request_id: UUID,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> InvestigationResponse:
+    service = CitizenParticipationService(
+        request_repository=CitizenRequestRepository(session),
+        event_repository=EventRepository(session),
+    )
+
+    digital_twin: DigitalTwin = request.app.state.digital_twin
+
+    try:
+        investigation = service.investigate_request(
+            request_id=request_id,
+            digital_twin=digital_twin,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return InvestigationResponse.from_domain(investigation)
