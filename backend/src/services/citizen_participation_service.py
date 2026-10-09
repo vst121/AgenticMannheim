@@ -16,6 +16,10 @@ from infrastructure.persistence.repositories.citizen_request_repository import (
 from infrastructure.persistence.repositories.event_repository import (
     EventRepository,
 )
+from domain.intervention_proposal import (
+    InterventionProposal,
+    InterventionType,
+)
 
 
 class CitizenParticipationService:
@@ -92,3 +96,63 @@ class CitizenParticipationService:
         )
 
         return agent.investigate(request)
+
+    def propose_intervention(
+        self,
+        request_id: UUID,
+        digital_twin: DigitalTwin,
+    ) -> InterventionProposal:
+        investigation = self.investigate_request(
+            request_id=request_id,
+            digital_twin=digital_twin,
+        )
+
+        request = self._request_repository.get_by_id(request_id)
+        if request is None:
+            raise ValueError(f"Citizen request '{request_id}' was not found.")
+
+        nearby_intersections = [
+            finding
+            for finding in investigation.findings
+            if finding.category == "nearby_intersection"
+        ]
+
+        if request.request_type.value == "safety_concern":
+            intervention_type = InterventionType.PEDESTRIAN_SAFETY
+            title = "Review pedestrian safety near the reported location"
+            description = (
+                "Assess pedestrian safety at the reported location. "
+                f"The investigation identified "
+                f"{len(nearby_intersections)} nearby intersections "
+                "within the configured search radius."
+            )
+        elif request.request_type.value == "incident":
+            intervention_type = InterventionType.FURTHER_INVESTIGATION
+            title = "Investigate the reported traffic incident"
+            description = (
+                "Review the reported incident and the nearby Digital Twin "
+                "context before deciding whether an intervention is needed."
+            )
+        else:
+            intervention_type = InterventionType.FURTHER_INVESTIGATION
+            title = "Review the citizen request"
+            description = (
+                "Review the request and gather additional evidence "
+                "before recommending an intervention."
+            )
+
+        return InterventionProposal(
+            request_id=request.id,
+            investigation_id=investigation.id,
+            intervention_type=intervention_type,
+            title=title,
+            description=description,
+            expected_benefits=[
+                "Provide a structured response to the citizen's concern."
+            ],
+            potential_risks=[
+                "The available investigation data may not be sufficient "
+                "to justify a real-world change."
+            ],
+            correlation_id=request.correlation_id,
+        )

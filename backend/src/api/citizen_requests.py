@@ -21,6 +21,8 @@ from services.citizen_participation_service import (
 )
 from digital_twin.twin import DigitalTwin
 from domain.investigation import Investigation
+from domain.intervention_proposal import InterventionProposal
+
 
 router = APIRouter(
     prefix="/api/citizen-requests",
@@ -103,6 +105,35 @@ class InvestigationResponse(BaseModel):
             correlation_id=investigation.correlation_id,
         )
 
+class InterventionProposalResponse(BaseModel):
+    id: UUID
+    request_id: UUID
+    investigation_id: UUID
+    intervention_type: str
+    title: str
+    description: str
+    expected_benefits: list[str]
+    potential_risks: list[str]
+    status: str
+    correlation_id: UUID
+
+    @classmethod
+    def from_domain(
+        cls,
+        proposal: InterventionProposal,
+    ) -> "InterventionProposalResponse":
+        return cls(
+            id=proposal.id,
+            request_id=proposal.request_id,
+            investigation_id=proposal.investigation_id,
+            intervention_type=proposal.intervention_type.value,
+            title=proposal.title,
+            description=proposal.description,
+            expected_benefits=proposal.expected_benefits,
+            potential_risks=proposal.potential_risks,
+            status=proposal.status.value,
+            correlation_id=proposal.correlation_id,
+        )
 
 @router.post(
     "",
@@ -162,3 +193,33 @@ def investigate_citizen_request(
         ) from exc
 
     return InvestigationResponse.from_domain(investigation)
+
+@router.post(
+    "/{request_id}/proposal",
+    response_model=InterventionProposalResponse,
+)
+def propose_citizen_intervention(
+    request_id: UUID,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> InterventionProposalResponse:
+    service = CitizenParticipationService(
+        request_repository=CitizenRequestRepository(session),
+        event_repository=EventRepository(session),
+    )
+
+    digital_twin: DigitalTwin = request.app.state.digital_twin
+
+    try:
+        proposal = service.propose_intervention(
+            request_id=request_id,
+            digital_twin=digital_twin,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return InterventionProposalResponse.from_domain(proposal)
+
