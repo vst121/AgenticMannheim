@@ -1,4 +1,3 @@
-
 from math import cos, hypot, radians
 from uuid import UUID
 
@@ -17,8 +16,9 @@ from infrastructure.persistence.repositories.event_repository import (
 )
 
 METERS_PER_DEGREE_LATITUDE = 111_320
-
 class InvestigationAgent:
+    MAX_NEARBY_INTERSECTIONS = 5
+
     def __init__(
         self,
         digital_twin: DigitalTwin,
@@ -69,6 +69,8 @@ class InvestigationAgent:
             )
 
         state = self._digital_twin.get_state()
+        nearby_intersections: list[tuple[object, float]] = []
+
         for intersection in state.intersections:
             distance = self._distance_meters(
                 request.location.latitude,
@@ -77,9 +79,14 @@ class InvestigationAgent:
                 intersection.longitude,
             )
 
-            if distance > self._search_radius_meters:
-                continue
+            if distance <= self._search_radius_meters:
+                nearby_intersections.append((intersection, distance))
 
+        nearby_intersections.sort(key=lambda item: item[1])
+
+        for intersection, distance in nearby_intersections[
+            : self.MAX_NEARBY_INTERSECTIONS
+        ]:
             investigation.add_finding(
                 InvestigationFinding(
                     category="nearby_intersection",
@@ -168,7 +175,9 @@ class InvestigationAgent:
         longitude_b: float,
     ) -> float:
         mean_latitude = radians((latitude_a + latitude_b) / 2)
-        latitude_delta = (latitude_b - latitude_a) * METERS_PER_DEGREE_LATITUDE
+        latitude_delta = (
+            latitude_b - latitude_a
+        ) * METERS_PER_DEGREE_LATITUDE
         longitude_delta = (
             (longitude_b - longitude_a)
             * METERS_PER_DEGREE_LATITUDE
