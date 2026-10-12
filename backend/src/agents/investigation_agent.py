@@ -35,86 +35,109 @@ class InvestigationAgent:
         self._search_radius_meters = search_radius_meters
 
     def investigate(self, request: CitizenRequest) -> Investigation:
-        investigation = Investigation(
-            request_id=request.id,
-            correlation_id=request.correlation_id,
-        )
-
-        investigation.add_finding(
-            InvestigationFinding(
-                category="citizen_request",
-                description=(
-                    f"Request type: {request.request_type.value}. "
-                    f"Description: {request.description}"
-                ),
-                source=f"citizen_request:{request.id}",
-                confidence=1.0,
+            investigation = Investigation(
+                request_id=request.id,
+                correlation_id=request.correlation_id,
             )
-        )
 
-        related_requests = self._find_related_requests(request)
-        for related_request in related_requests:
-            investigation.related_request_ids.append(related_request.id)
             investigation.add_finding(
                 InvestigationFinding(
-                    category="related_citizen_request",
+                    category="citizen_request",
                     description=(
-                        f"Nearby request of type "
-                        f"{related_request.request_type.value}: "
-                        f"{related_request.description}"
+                        f"Request type: {request.request_type.value}. "
+                        f"Description: {request.description}"
                     ),
-                    source=f"citizen_request:{related_request.id}",
+                    source=f"citizen_request:{request.id}",
                     confidence=1.0,
                 )
             )
 
-        state = self._digital_twin.get_state()
-        nearby_intersections: list[tuple[object, float]] = []
-
-        for intersection in state.intersections:
-            distance = self._distance_meters(
-                request.location.latitude,
-                request.location.longitude,
-                intersection.latitude,
-                intersection.longitude,
-            )
-
-            if distance <= self._search_radius_meters:
-                nearby_intersections.append((intersection, distance))
-
-        nearby_intersections.sort(key=lambda item: item[1])
-
-        for intersection, distance in nearby_intersections[
-            : self.MAX_NEARBY_INTERSECTIONS
-        ]:
-            investigation.add_finding(
-                InvestigationFinding(
-                    category="nearby_intersection",
-                    description=(
-                        f"Intersection '{intersection.name}' is "
-                        f"approximately {distance:.0f} meters away. "
-                        f"Traffic light present: "
-                        f"{intersection.traffic_light is not None}."
-                    ),
-                    source=f"digital_twin:intersection:{intersection.id}",
-                    confidence=1.0,
+            related_requests = self._find_related_requests(request)
+            for related_request in related_requests:
+                investigation.related_request_ids.append(related_request.id)
+                investigation.add_finding(
+                    InvestigationFinding(
+                        category="related_citizen_request",
+                        description=(
+                            f"Nearby request of type "
+                            f"{related_request.request_type.value}: "
+                            f"{related_request.description}"
+                        ),
+                        source=f"citizen_request:{related_request.id}",
+                        confidence=1.0,
+                    )
                 )
-            )
 
-        for event in self._find_location_tagged_events(request):
-            investigation.related_event_ids.append(event.id)
-            investigation.add_finding(
-                InvestigationFinding(
-                    category="nearby_city_event",
-                    description=(
-                        f"Nearby event of type {event.event_type.value}."
-                    ),
-                    source=f"city_event:{event.id}",
-                    confidence=1.0,
+            state = self._digital_twin.get_state()
+            nearby_intersections: list[tuple[object, float]] = []
+
+            for intersection in state.intersections:
+                distance = self._distance_meters(
+                    request.location.latitude,
+                    request.location.longitude,
+                    intersection.latitude,
+                    intersection.longitude,
                 )
-            )
 
-        return investigation
+                if distance <= self._search_radius_meters:
+                    nearby_intersections.append((intersection, distance))
+
+            nearby_intersections.sort(key=lambda item: item[1])
+
+            # Identify the nearest intersection with a traffic light.
+            signalized_intersections = [
+                (intersection, distance)
+                for intersection, distance in nearby_intersections
+                if intersection.traffic_light is not None
+            ]
+
+            if signalized_intersections:
+                intersection, distance = signalized_intersections[0]
+                investigation.add_finding(
+                    InvestigationFinding(
+                        category="nearest_signalized_intersection",
+                        description=(
+                            f"Nearest intersection with a traffic light is "
+                            f"'{intersection.name}', approximately "
+                            f"{distance:.0f} meters away."
+                        ),
+                        source=f"digital_twin:intersection:{intersection.id}",
+                        confidence=1.0,
+                    )
+                )
+
+            # Include only the five nearest intersections in the general findings.
+            for intersection, distance in nearby_intersections[
+                : self.MAX_NEARBY_INTERSECTIONS
+            ]:
+                investigation.add_finding(
+                    InvestigationFinding(
+                        category="nearby_intersection",
+                        description=(
+                            f"Intersection '{intersection.name}' is "
+                            f"approximately {distance:.0f} meters away. "
+                            f"Traffic light present: "
+                            f"{intersection.traffic_light is not None}."
+                        ),
+                        source=f"digital_twin:intersection:{intersection.id}",
+                        confidence=1.0,
+                    )
+                )
+
+            for event in self._find_location_tagged_events(request):
+                investigation.related_event_ids.append(event.id)
+                investigation.add_finding(
+                    InvestigationFinding(
+                        category="nearby_city_event",
+                        description=(
+                            f"Nearby event of type {event.event_type.value}."
+                        ),
+                        source=f"city_event:{event.id}",
+                        confidence=1.0,
+                    )
+                )
+
+            return investigation
 
     def _find_related_requests(
         self,

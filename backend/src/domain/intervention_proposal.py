@@ -27,6 +27,7 @@ class InterventionProposal:
     intervention_type: InterventionType
     title: str
     description: str
+    target_intersection_id: UUID | None = None
     expected_benefits: list[str] = field(default_factory=list)
     potential_risks: list[str] = field(default_factory=list)
     id: UUID = field(default_factory=uuid4)

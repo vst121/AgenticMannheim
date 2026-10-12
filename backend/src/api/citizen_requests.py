@@ -112,6 +112,7 @@ class InterventionProposalResponse(BaseModel):
     intervention_type: str
     title: str
     description: str
+    target_intersection_id: UUID | None
     expected_benefits: list[str]
     potential_risks: list[str]
     status: str
@@ -129,11 +130,17 @@ class InterventionProposalResponse(BaseModel):
             intervention_type=proposal.intervention_type.value,
             title=proposal.title,
             description=proposal.description,
+            target_intersection_id=proposal.target_intersection_id,
             expected_benefits=proposal.expected_benefits,
             potential_risks=proposal.potential_risks,
             status=proposal.status.value,
             correlation_id=proposal.correlation_id,
         )
+
+class PolicyDecisionResponse(BaseModel):
+    allowed: bool
+    reason: str
+
 
 @router.post(
     "",
@@ -223,3 +230,40 @@ def propose_citizen_intervention(
 
     return InterventionProposalResponse.from_domain(proposal)
 
+@router.post(
+    "/{request_id}/proposal/validate",
+    response_model=PolicyDecisionResponse,
+)
+def validate_citizen_intervention(
+    request_id: UUID,
+    request: Request,
+    traffic_light_state: str,
+    session: Session = Depends(get_session),
+) -> PolicyDecisionResponse:
+    service = CitizenParticipationService(
+        request_repository=CitizenRequestRepository(session),
+        event_repository=EventRepository(session),
+    )
+
+    digital_twin: DigitalTwin = request.app.state.digital_twin
+
+    try:
+        proposal = service.propose_intervention(
+            request_id=request_id,
+            digital_twin=digital_twin,
+        )
+        decision = service.validate_intervention(
+            proposal=proposal,
+            digital_twin=digital_twin,
+            traffic_light_state=traffic_light_state,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return PolicyDecisionResponse(
+        allowed=decision.allowed,
+        reason=decision.reason,
+    )

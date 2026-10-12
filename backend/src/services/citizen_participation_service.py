@@ -20,7 +20,8 @@ from domain.intervention_proposal import (
     InterventionProposal,
     InterventionType,
 )
-
+from simulation.actions import SimulationAction
+from policy.policy import CityPolicy, PolicyDecision
 
 class CitizenParticipationService:
     def __init__(
@@ -117,6 +118,28 @@ class CitizenParticipationService:
             if finding.category == "nearby_intersection"
         ]
 
+        signalized_finding = next(
+            (
+                finding
+                for finding in investigation.findings
+                if finding.category == "nearest_signalized_intersection"
+            ),
+            None,
+        )
+
+        target_intersection_id: UUID | None = None
+
+        if signalized_finding is not None:
+            _, separator, intersection_id = signalized_finding.source.partition(
+                "digital_twin:intersection:"
+            )
+
+            if separator:
+                try:
+                    target_intersection_id = UUID(intersection_id)
+                except ValueError:
+                    target_intersection_id = None
+
         if request.request_type.value == "safety_concern":
             intervention_type = InterventionType.PEDESTRIAN_SAFETY
             title = "Review pedestrian safety near the reported location"
@@ -147,6 +170,7 @@ class CitizenParticipationService:
             intervention_type=intervention_type,
             title=title,
             description=description,
+            target_intersection_id=target_intersection_id,
             expected_benefits=[
                 "Provide a structured response to the citizen's concern."
             ],
@@ -155,4 +179,43 @@ class CitizenParticipationService:
                 "to justify a real-world change."
             ],
             correlation_id=request.correlation_id,
+        )
+
+    def validate_intervention(
+        self,
+        proposal: InterventionProposal,
+        digital_twin: DigitalTwin,
+        traffic_light_state: str,
+    ) -> PolicyDecision:
+        action = self.to_simulation_action(
+            proposal=proposal,
+            traffic_light_state=traffic_light_state,
+        )
+
+        if action is None:
+            return PolicyDecision(
+                allowed=False,
+                reason=(
+                    "The proposal cannot be converted into a traffic-light "
+                    "simulation action."
+                ),
+            )
+
+        policy = CityPolicy(digital_twin)
+        return policy.validate(action)
+
+    @staticmethod
+    def to_simulation_action(
+        proposal: InterventionProposal,
+        traffic_light_state: str,
+    ) -> SimulationAction | None:
+        if proposal.intervention_type != InterventionType.TRAFFIC_LIGHT_ADJUSTMENT:
+            return None
+
+        if proposal.target_intersection_id is None:
+            return None
+
+        return SimulationAction(
+            intersection_id=proposal.target_intersection_id,
+            traffic_light_state=traffic_light_state,
         )
