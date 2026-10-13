@@ -1,4 +1,3 @@
-
 from uuid import UUID
 
 from agents.intervention_evaluation_agent import InterventionEvaluationAgent
@@ -65,27 +64,41 @@ class InterventionEvaluationService:
         )
         investigation = investigation_agent.investigate(request)
 
-        evaluation = self._evaluation_agent.evaluate(
-            request=request,
-            proposal=proposal,
-            investigation=investigation,
-        )
+        try:
+            evaluation = self._evaluation_agent.evaluate(
+                request=request,
+                proposal=proposal,
+                investigation=investigation,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"OpenRouter intervention evaluation failed "
+                f"for proposal '{proposal_id}': "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
 
-        jev_assessment, jev_confidence = self._jev_client.assess_evidence(
-            request_description=request.description,
-            proposal_description=(
-                f"{proposal.title}\n{proposal.description}"
-            ),
-            findings=[
-                {
-                    "category": finding.category,
-                    "description": finding.description,
-                    "source": finding.source,
-                    "confidence": finding.confidence,
-                }
-                for finding in investigation.findings
-            ],
-        )
+        try:
+            jev_assessment, jev_confidence = self._jev_client.assess_evidence(
+                request_description=request.description,
+                proposal_description=(
+                    f"{proposal.title}\n{proposal.description}"
+                ),
+                findings=[
+                    {
+                        "category": finding.category,
+                        "description": finding.description,
+                        "source": finding.source,
+                        "confidence": finding.confidence,
+                    }
+                    for finding in investigation.findings
+                ],
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"Jev evidence assessment failed "
+                f"for proposal '{proposal_id}': "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
 
         evaluation.add_finding(
             EvaluationFinding(
