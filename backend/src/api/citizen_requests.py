@@ -308,6 +308,40 @@ def list_request_proposals(
         for proposal in proposals
     ]
 
+@router.get(
+    "/{request_id}/proposals/{proposal_id}/evaluations",
+    response_model=list[InterventionEvaluationResponse],
+)
+def list_proposal_evaluations(
+    request_id: UUID,
+    proposal_id: UUID,
+    session: Session = Depends(get_session),
+) -> list[InterventionEvaluationResponse]:
+    request_repository = CitizenRequestRepository(session)
+    proposal_repository = InterventionProposalRepository(session)
+    evaluation_repository = InterventionEvaluationRepository(session)
+
+    citizen_request = request_repository.get_by_id(request_id)
+    if citizen_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Citizen request '{request_id}' was not found.",
+        )
+
+    proposal = proposal_repository.get_by_id(proposal_id)
+    if proposal is None or proposal.request_id != request_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Proposal '{proposal_id}' was not found for this request.",
+        )
+
+    evaluations = evaluation_repository.list_by_proposal(proposal_id)
+
+    return [
+        InterventionEvaluationResponse.from_domain(evaluation)
+        for evaluation in evaluations
+    ]
+
 @router.post(
     "/proposals/{proposal_id}/evaluations",
     response_model=InterventionEvaluationResponse,
