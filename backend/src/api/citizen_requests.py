@@ -2,6 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from infrastructure.persistence.repositories.intervention_proposal_repository import InterventionProposalRepository
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -156,6 +157,7 @@ def submit_citizen_request(
             service = CitizenParticipationService(
                 request_repository=CitizenRequestRepository(session),
                 event_repository=EventRepository(session),
+                intervention_proposal_repository=InterventionProposalRepository(session),                    
             )
             request = service.submit_request(
                 request_type=payload.request_type,
@@ -184,6 +186,7 @@ def investigate_citizen_request(
     service = CitizenParticipationService(
         request_repository=CitizenRequestRepository(session),
         event_repository=EventRepository(session),
+        intervention_proposal_repository=InterventionProposalRepository(session),
     )
 
     digital_twin: DigitalTwin = request.app.state.digital_twin
@@ -213,6 +216,7 @@ def propose_citizen_intervention(
     service = CitizenParticipationService(
         request_repository=CitizenRequestRepository(session),
         event_repository=EventRepository(session),
+        intervention_proposal_repository=InterventionProposalRepository(session)
     )
 
     digital_twin: DigitalTwin = request.app.state.digital_twin
@@ -229,41 +233,3 @@ def propose_citizen_intervention(
         ) from exc
 
     return InterventionProposalResponse.from_domain(proposal)
-
-@router.post(
-    "/{request_id}/proposal/validate",
-    response_model=PolicyDecisionResponse,
-)
-def validate_citizen_intervention(
-    request_id: UUID,
-    request: Request,
-    traffic_light_state: str,
-    session: Session = Depends(get_session),
-) -> PolicyDecisionResponse:
-    service = CitizenParticipationService(
-        request_repository=CitizenRequestRepository(session),
-        event_repository=EventRepository(session),
-    )
-
-    digital_twin: DigitalTwin = request.app.state.digital_twin
-
-    try:
-        proposal = service.propose_intervention(
-            request_id=request_id,
-            digital_twin=digital_twin,
-        )
-        decision = service.validate_intervention(
-            proposal=proposal,
-            digital_twin=digital_twin,
-            traffic_light_state=traffic_light_state,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-
-    return PolicyDecisionResponse(
-        allowed=decision.allowed,
-        reason=decision.reason,
-    )

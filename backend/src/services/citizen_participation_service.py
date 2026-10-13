@@ -10,27 +10,33 @@ from domain.citizen_request import (
 )
 from domain.event import CityEvent, CityEventType
 from domain.investigation import Investigation
-from infrastructure.persistence.repositories.citizen_request_repository import (
-    CitizenRequestRepository,
-)
-from infrastructure.persistence.repositories.event_repository import (
-    EventRepository,
-)
 from domain.intervention_proposal import (
     InterventionProposal,
     InterventionType,
 )
 from simulation.actions import SimulationAction
 from policy.policy import CityPolicy, PolicyDecision
+from infrastructure.persistence.repositories.citizen_request_repository import (
+    CitizenRequestRepository,
+)
+from infrastructure.persistence.repositories.event_repository import (
+    EventRepository,
+)
+from infrastructure.persistence.repositories.intervention_proposal_repository import (
+    InterventionProposalRepository,
+)
+
 
 class CitizenParticipationService:
     def __init__(
         self,
         request_repository: CitizenRequestRepository,
         event_repository: EventRepository,
+        intervention_proposal_repository: InterventionProposalRepository,
     ) -> None:
         self._request_repository = request_repository
         self._event_repository = event_repository
+        self._intervention_proposal_repository = intervention_proposal_repository
 
     def submit_request(
         self,
@@ -164,7 +170,7 @@ class CitizenParticipationService:
                 "before recommending an intervention."
             )
 
-        return InterventionProposal(
+        proposal = InterventionProposal(
             request_id=request.id,
             investigation_id=investigation.id,
             intervention_type=intervention_type,
@@ -181,41 +187,4 @@ class CitizenParticipationService:
             correlation_id=request.correlation_id,
         )
 
-    def validate_intervention(
-        self,
-        proposal: InterventionProposal,
-        digital_twin: DigitalTwin,
-        traffic_light_state: str,
-    ) -> PolicyDecision:
-        action = self.to_simulation_action(
-            proposal=proposal,
-            traffic_light_state=traffic_light_state,
-        )
-
-        if action is None:
-            return PolicyDecision(
-                allowed=False,
-                reason=(
-                    "The proposal cannot be converted into a traffic-light "
-                    "simulation action."
-                ),
-            )
-
-        policy = CityPolicy(digital_twin)
-        return policy.validate(action)
-
-    @staticmethod
-    def to_simulation_action(
-        proposal: InterventionProposal,
-        traffic_light_state: str,
-    ) -> SimulationAction | None:
-        if proposal.intervention_type != InterventionType.TRAFFIC_LIGHT_ADJUSTMENT:
-            return None
-
-        if proposal.target_intersection_id is None:
-            return None
-
-        return SimulationAction(
-            intersection_id=proposal.target_intersection_id,
-            traffic_light_state=traffic_light_state,
-        )
+        return self._intervention_proposal_repository.add(proposal)

@@ -8,6 +8,7 @@ from infrastructure.persistence.models import Base
 from infrastructure.persistence.models import CityModel  # noqa: F401
 from infrastructure.persistence.models.agent_run import AgentRunModel
 from infrastructure.persistence.models.citizen_request import CitizenRequestModel
+from infrastructure.persistence.models.intervention_proposal import InterventionProposalModel
 
 
 config = context.config
