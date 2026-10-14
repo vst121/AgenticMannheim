@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     openrouter_base_url: str
     openrouter_model: str
 
-    typesafe_api_key: str | None = None
-    typesafe_model: str = "jev-latest"
+    typesafe_base_url: str
+    typesafe_model: str 
 
     model_config = SettingsConfigDict(
         env_file=".env",

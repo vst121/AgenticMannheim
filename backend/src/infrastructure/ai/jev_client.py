@@ -12,6 +12,7 @@ class JevClient:
 
         self._client = TypeSafeClient(
             api_key=settings.typesafe_api_key,
+            base_url=settings.typesafe_base_url,
             model=settings.typesafe_model,
         )
 
