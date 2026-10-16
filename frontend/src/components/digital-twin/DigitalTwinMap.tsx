@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -57,11 +56,10 @@ function sanitizeStyleFilters(
   return { ...style, layers: cleanLayers };
 }
 
-export function DigitalTwinMap({
-  onLocationSelect,
-}: DigitalTwinMapProps) {
+export function DigitalTwinMap({ onLocationSelect }: DigitalTwinMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const selectionMarkerRef = useRef<maplibregl.Marker | null>(null);
   const onLocationSelectRef = useRef(onLocationSelect);
 
   useEffect(() => {
@@ -153,11 +151,21 @@ export function DigitalTwinMap({
 
         mapRef.current = map;
 
-        // Allow the citizen participation UI to select a location on the map.
+        // Show one movable pin for the citizen's selected location.
         map.on("click", (event) => {
+          const { lat, lng } = event.lngLat;
+
+          if (!selectionMarkerRef.current) {
+            selectionMarkerRef.current = new maplibregl.Marker({
+              color: "#2563eb",
+            });
+          }
+
+          selectionMarkerRef.current.setLngLat([lng, lat]).addTo(map);
+
           onLocationSelectRef.current?.({
-            latitude: event.lngLat.lat,
-            longitude: event.lngLat.lng,
+            latitude: lat,
+            longitude: lng,
           });
         });
 
@@ -279,6 +287,9 @@ export function DigitalTwinMap({
       isMounted = false;
       console.warn = originalWarn;
       console.error = originalError;
+
+      selectionMarkerRef.current?.remove();
+      selectionMarkerRef.current = null;
 
       if (mapRef.current) {
         mapRef.current.remove();
