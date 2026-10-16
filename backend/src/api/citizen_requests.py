@@ -1,7 +1,6 @@
 
 from datetime import datetime
 from uuid import UUID
-import digital_twin
 from domain.intervention_evaluation import InterventionEvaluation
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from httpcore import request
