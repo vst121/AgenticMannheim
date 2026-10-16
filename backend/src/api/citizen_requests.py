@@ -309,6 +309,32 @@ def list_request_proposals(
         for proposal in proposals
     ]
 
+@router.post(
+    "/proposals/{proposal_id}/evaluations",
+    response_model=InterventionEvaluationResponse,
+    status_code=201,
+)
+def evaluate_intervention_proposal(
+    proposal_id: UUID,
+    request: Request,
+    session=Depends(get_session),
+):
+    try:
+        with session.begin():
+            service = InterventionEvaluationService(
+                proposal_repository=InterventionProposalRepository(session),
+                request_repository=CitizenRequestRepository(session),
+                event_repository=EventRepository(session),
+                evaluation_repository=InterventionEvaluationRepository(session),
+                digital_twin=request.app.state.digital_twin,
+                jev_client=FakeJevClient(),
+            )
+            evaluation = service.evaluate(proposal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return InterventionEvaluationResponse.from_domain(evaluation)
+
 @router.get(
     "/{request_id}/proposals/{proposal_id}/evaluations",
     response_model=list[InterventionEvaluationResponse],
@@ -343,28 +369,3 @@ def list_proposal_evaluations(
         for evaluation in evaluations
     ]
 
-@router.post(
-    "/proposals/{proposal_id}/evaluations",
-    response_model=InterventionEvaluationResponse,
-    status_code=201,
-)
-def evaluate_intervention_proposal(
-    proposal_id: UUID,
-    request: Request,
-    session=Depends(get_session),
-):
-    try:
-        with session.begin():
-            service = InterventionEvaluationService(
-                proposal_repository=InterventionProposalRepository(session),
-                request_repository=CitizenRequestRepository(session),
-                event_repository=EventRepository(session),
-                evaluation_repository=InterventionEvaluationRepository(session),
-                digital_twin=request.app.state.digital_twin,
-                jev_client=FakeJevClient(),
-            )
-            evaluation = service.evaluate(proposal_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-    return InterventionEvaluationResponse.from_domain(evaluation)
