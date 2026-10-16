@@ -221,6 +221,26 @@ def submit_citizen_request(
 
 
 @router.get(
+    "/{request_id}",
+    response_model=CitizenRequestResponse,
+)
+def get_citizen_request(
+    request_id: UUID,
+    session=Depends(get_session),
+):
+    repository = CitizenRequestRepository(session)
+    citizen_request = repository.get_by_id(request_id)
+
+    if citizen_request is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Citizen request '{request_id}' was not found.",
+        )
+
+    return CitizenRequestResponse.from_domain(citizen_request)
+
+
+@router.get(
     "/{request_id}/investigation",
     response_model=InvestigationResponse,
 )

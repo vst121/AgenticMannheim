@@ -112,4 +112,9 @@ class InterventionEvaluationService:
             )
         )
 
-        return self._evaluation_repository.add(evaluation)
+        saved_evaluation = self._evaluation_repository.add(evaluation)
+
+        proposal.mark_evaluated()
+        self._proposal_repository.update(proposal)
+
+        return saved_evaluation
