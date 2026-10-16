@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     openrouter_base_url: str
     openrouter_model: str
 
-    typesafe_base_url: str
-    typesafe_model: str 
+    jev_base_url: str
+    jev_model: str 
 
     model_config = SettingsConfigDict(
         env_file=".env",
