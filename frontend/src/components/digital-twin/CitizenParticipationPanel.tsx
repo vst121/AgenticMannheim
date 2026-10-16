@@ -46,21 +46,18 @@ export function CitizenParticipationPanel({
     setIsError(false);
 
     try {
-      const response = await fetch(
-        `${env.apiBaseUrl}/api/citizen-participation/requests`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            request_type: requestType,
-            description: description.trim(),
-            latitude: selectedLocation.latitude,
-            longitude: selectedLocation.longitude,
-          }),
+      const response = await fetch(`${env.apiBaseUrl}/api/citizen-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          request_type: requestType,
+          description: description.trim(),
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude,
+        }),
+      });
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
