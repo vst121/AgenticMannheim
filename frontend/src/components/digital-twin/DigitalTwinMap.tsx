@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -21,6 +22,15 @@ import {
 } from "@/lib/map/sources";
 
 maplibregl.setWorkerUrl(mapConfig.workerUrl);
+
+type SelectedLocation = {
+  latitude: number;
+  longitude: number;
+};
+
+type DigitalTwinMapProps = {
+  onLocationSelect?: (location: SelectedLocation) => void;
+};
 
 function sanitizeStyleFilters(
   style: maplibregl.StyleSpecification,
@@ -47,9 +57,16 @@ function sanitizeStyleFilters(
   return { ...style, layers: cleanLayers };
 }
 
-export function DigitalTwinMap() {
+export function DigitalTwinMap({
+  onLocationSelect,
+}: DigitalTwinMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const onLocationSelectRef = useRef(onLocationSelect);
+
+  useEffect(() => {
+    onLocationSelectRef.current = onLocationSelect;
+  }, [onLocationSelect]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) {
@@ -136,6 +153,14 @@ export function DigitalTwinMap() {
 
         mapRef.current = map;
 
+        // Allow the citizen participation UI to select a location on the map.
+        map.on("click", (event) => {
+          onLocationSelectRef.current?.({
+            latitude: event.lngLat.lat,
+            longitude: event.lngLat.lng,
+          });
+        });
+
         map.on("load", async () => {
           try {
             const trafficLightImages = [
@@ -153,7 +178,6 @@ export function DigitalTwinMap() {
 
             if (!map.hasImage("emergency-vehicle")) {
               const image = await map.loadImage("/icons/emergency-vehicle.png");
-
               map.addImage("emergency-vehicle", image.data);
             }
 
@@ -255,6 +279,7 @@ export function DigitalTwinMap() {
       isMounted = false;
       console.warn = originalWarn;
       console.error = originalError;
+
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
