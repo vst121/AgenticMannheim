@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -60,21 +61,45 @@ type InterventionProposal = {
   correlation_id: string;
 };
 
+type EvaluationFinding = {
+  category: string;
+  description: string;
+  source: string;
+  confidence: number;
+};
+
+type InterventionEvaluation = {
+  id: string;
+  proposal_id: string;
+  outcome: "favorable" | "unfavorable" | "inconclusive" | string;
+  summary: string;
+  findings: EvaluationFinding[];
+  expected_benefits: string[];
+  potential_risks: string[];
+  created_at: string;
+  correlation_id: string;
+};
+
 export function CitizenParticipationPanel({
   selectedLocation,
 }: CitizenParticipationPanelProps) {
   const [requestType, setRequestType] =
     useState<CitizenRequestType>("safety_concern");
   const [description, setDescription] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInvestigating, setIsInvestigating] = useState(false);
   const [isGeneratingProposal, setIsGeneratingProposal] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   const [submittedRequest, setSubmittedRequest] =
     useState<CitizenRequestResponse | null>(null);
   const [investigation, setInvestigation] =
     useState<InvestigationResponse | null>(null);
-  const [proposal, setProposal] = useState<InterventionProposal | null>(null);
+  const [proposal, setProposal] =
+    useState<InterventionProposal | null>(null);
+  const [evaluation, setEvaluation] =
+    useState<InterventionEvaluation | null>(null);
 
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
@@ -97,18 +122,21 @@ export function CitizenParticipationPanel({
     setIsError(false);
 
     try {
-      const response = await fetch(`${env.apiBaseUrl}/api/citizen-requests`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${env.apiBaseUrl}/api/citizen-requests`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            request_type: requestType,
+            description: description.trim(),
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+          }),
         },
-        body: JSON.stringify({
-          request_type: requestType,
-          description: description.trim(),
-          latitude: selectedLocation.latitude,
-          longitude: selectedLocation.longitude,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
@@ -119,11 +147,13 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const createdRequest = (await response.json()) as CitizenRequestResponse;
+      const createdRequest =
+        (await response.json()) as CitizenRequestResponse;
 
       setSubmittedRequest(createdRequest);
       setInvestigation(null);
       setProposal(null);
+      setEvaluation(null);
       setDescription("");
       setMessage("Your request was submitted successfully.");
     } catch (error) {
@@ -146,6 +176,7 @@ export function CitizenParticipationPanel({
     setIsError(false);
     setInvestigation(null);
     setProposal(null);
+    setEvaluation(null);
 
     try {
       const response = await fetch(
@@ -161,7 +192,8 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const result = (await response.json()) as InvestigationResponse;
+      const result =
+        (await response.json()) as InvestigationResponse;
 
       setInvestigation(result);
       setMessage("Investigation results received.");
@@ -184,6 +216,7 @@ export function CitizenParticipationPanel({
     setMessage(null);
     setIsError(false);
     setProposal(null);
+    setEvaluation(null);
 
     try {
       const response = await fetch(
@@ -202,7 +235,8 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const generatedProposal = (await response.json()) as InterventionProposal;
+      const generatedProposal =
+        (await response.json()) as InterventionProposal;
 
       setProposal(generatedProposal);
       setMessage("Intervention proposal generated successfully.");
@@ -215,6 +249,48 @@ export function CitizenParticipationPanel({
       );
     } finally {
       setIsGeneratingProposal(false);
+    }
+  };
+
+  const evaluateProposal = async () => {
+    if (!proposal) return;
+
+    setIsEvaluating(true);
+    setMessage(null);
+    setIsError(false);
+    setEvaluation(null);
+
+    try {
+      const response = await fetch(
+        `${env.apiBaseUrl}/api/citizen-requests/proposals/${proposal.id}/evaluations`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          typeof errorBody?.detail === "string"
+            ? errorBody.detail
+            : `Evaluation failed (${response.status}).`,
+        );
+      }
+
+      const result =
+        (await response.json()) as InterventionEvaluation;
+
+      setEvaluation(result);
+      setMessage("Intervention evaluation completed.");
+    } catch (error) {
+      setIsError(true);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to evaluate the intervention.",
+      );
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
@@ -288,7 +364,12 @@ export function CitizenParticipationPanel({
       <button
         type="button"
         onClick={submitRequest}
-        disabled={isSubmitting || isInvestigating || isGeneratingProposal}
+        disabled={
+          isSubmitting ||
+          isInvestigating ||
+          isGeneratingProposal ||
+          isEvaluating
+        }
         className="mt-4 w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? "Submitting..." : "Submit request"}
@@ -313,7 +394,12 @@ export function CitizenParticipationPanel({
           <button
             type="button"
             onClick={investigateRequest}
-            disabled={isInvestigating || isSubmitting || isGeneratingProposal}
+            disabled={
+              isInvestigating ||
+              isSubmitting ||
+              isGeneratingProposal ||
+              isEvaluating
+            }
             className="mt-3 w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isInvestigating ? "Investigating..." : "Investigate request"}
@@ -328,7 +414,8 @@ export function CitizenParticipationPanel({
           </h3>
 
           <p className="mt-2 text-sm text-gray-700">
-            Status: <span className="font-medium">{investigation.status}</span>
+            Status:{" "}
+            <span className="font-medium">{investigation.status}</span>
           </p>
 
           <p className="mt-1 text-sm text-gray-700">
@@ -379,7 +466,12 @@ export function CitizenParticipationPanel({
           <button
             type="button"
             onClick={generateProposal}
-            disabled={isGeneratingProposal || isInvestigating || isSubmitting}
+            disabled={
+              isGeneratingProposal ||
+              isInvestigating ||
+              isSubmitting ||
+              isEvaluating
+            }
             className="mt-4 w-full rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isGeneratingProposal
@@ -403,10 +495,13 @@ export function CitizenParticipationPanel({
             {proposal.title}
           </h4>
 
-          <p className="mt-2 text-sm text-gray-700">{proposal.description}</p>
+          <p className="mt-2 text-sm text-gray-700">
+            {proposal.description}
+          </p>
 
           <p className="mt-3 text-sm text-gray-700">
-            Status: <span className="font-medium">{proposal.status}</span>
+            Status:{" "}
+            <span className="font-medium">{proposal.status}</span>
           </p>
 
           {proposal.expected_benefits.length > 0 && (
@@ -444,6 +539,106 @@ export function CitizenParticipationPanel({
               Target intersection ID: {proposal.target_intersection_id}
             </p>
           )}
+
+          <button
+            type="button"
+            onClick={evaluateProposal}
+            disabled={
+              isEvaluating ||
+              isGeneratingProposal ||
+              isInvestigating ||
+              isSubmitting
+            }
+            className="mt-4 w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isEvaluating ? "Evaluating..." : "Evaluate intervention"}
+          </button>
+        </div>
+      )}
+
+      {evaluation && (
+        <div className="mt-4 rounded-md border border-teal-200 bg-teal-50 p-3">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Intervention evaluation
+          </h3>
+
+          <p className="mt-2 text-sm text-gray-700">
+            Outcome:{" "}
+            <span className="font-semibold capitalize">
+              {evaluation.outcome.replaceAll("_", " ")}
+            </span>
+          </p>
+
+          <p className="mt-2 text-sm text-gray-700">
+            {evaluation.summary}
+          </p>
+
+          <div className="mt-3">
+            <h4 className="text-sm font-medium text-gray-900">
+              Evaluation findings ({evaluation.findings.length})
+            </h4>
+
+            {evaluation.findings.length > 0 ? (
+              <ul className="mt-2 space-y-3">
+                {evaluation.findings.map((finding, index) => (
+                  <li
+                    key={`${finding.category}-${finding.source}-${index}`}
+                    className="rounded-md bg-white p-3"
+                  >
+                    <p className="text-sm font-medium capitalize text-gray-900">
+                      {finding.category.replaceAll("_", " ")}
+                    </p>
+
+                    <p className="mt-1 text-sm text-gray-700">
+                      {finding.description}
+                    </p>
+
+                    <p className="mt-2 text-xs text-gray-500">
+                      Source: {finding.source}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      Confidence: {(finding.confidence * 100).toFixed(0)}%
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-sm text-gray-600">
+                No evaluation findings were returned.
+              </p>
+            )}
+          </div>
+
+          {evaluation.expected_benefits.length > 0 && (
+            <div className="mt-3">
+              <h4 className="text-sm font-medium text-gray-900">
+                Expected benefits
+              </h4>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                {evaluation.expected_benefits.map((benefit, index) => (
+                  <li key={`${benefit}-${index}`}>{benefit}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {evaluation.potential_risks.length > 0 && (
+            <div className="mt-3">
+              <h4 className="text-sm font-medium text-gray-900">
+                Potential risks
+              </h4>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                {evaluation.potential_risks.map((risk, index) => (
+                  <li key={`${risk}-${index}`}>{risk}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="mt-3 break-all text-xs text-gray-500">
+            Evaluation ID: {evaluation.id}
+          </p>
         </div>
       )}
 
