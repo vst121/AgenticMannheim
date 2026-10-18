@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -96,13 +95,38 @@ export function CitizenParticipationPanel({
     useState<CitizenRequestResponse | null>(null);
   const [investigation, setInvestigation] =
     useState<InvestigationResponse | null>(null);
-  const [proposal, setProposal] =
-    useState<InterventionProposal | null>(null);
-  const [evaluation, setEvaluation] =
-    useState<InterventionEvaluation | null>(null);
+  const [proposal, setProposal] = useState<InterventionProposal | null>(null);
+  const [evaluation, setEvaluation] = useState<InterventionEvaluation | null>(
+    null,
+  );
 
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
+
+  const refreshCitizenRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(
+        `${env.apiBaseUrl}/api/citizen-requests/${requestId}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to refresh request status (${response.status}).`,
+        );
+      }
+
+      const updatedRequest = (await response.json()) as CitizenRequestResponse;
+
+      setSubmittedRequest(updatedRequest);
+      return true;
+    } catch {
+      setIsError(true);
+      setMessage(
+        "The operation succeeded, but the request status could not be refreshed.",
+      );
+      return false;
+    }
+  };
 
   const submitRequest = async () => {
     if (!selectedLocation) {
@@ -122,21 +146,18 @@ export function CitizenParticipationPanel({
     setIsError(false);
 
     try {
-      const response = await fetch(
-        `${env.apiBaseUrl}/api/citizen-requests`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            request_type: requestType,
-            description: description.trim(),
-            latitude: selectedLocation.latitude,
-            longitude: selectedLocation.longitude,
-          }),
+      const response = await fetch(`${env.apiBaseUrl}/api/citizen-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          request_type: requestType,
+          description: description.trim(),
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude,
+        }),
+      });
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
@@ -147,8 +168,7 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const createdRequest =
-        (await response.json()) as CitizenRequestResponse;
+      const createdRequest = (await response.json()) as CitizenRequestResponse;
 
       setSubmittedRequest(createdRequest);
       setInvestigation(null);
@@ -192,11 +212,15 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const result =
-        (await response.json()) as InvestigationResponse;
+      const result = (await response.json()) as InvestigationResponse;
 
       setInvestigation(result);
-      setMessage("Investigation results received.");
+
+      const statusRefreshed = await refreshCitizenRequest(submittedRequest.id);
+
+      if (statusRefreshed) {
+        setMessage("Investigation results received.");
+      }
     } catch (error) {
       setIsError(true);
       setMessage(
@@ -235,11 +259,15 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const generatedProposal =
-        (await response.json()) as InterventionProposal;
+      const generatedProposal = (await response.json()) as InterventionProposal;
 
       setProposal(generatedProposal);
-      setMessage("Intervention proposal generated successfully.");
+
+      const statusRefreshed = await refreshCitizenRequest(submittedRequest.id);
+
+      if (statusRefreshed) {
+        setMessage("Intervention proposal generated successfully.");
+      }
     } catch (error) {
       setIsError(true);
       setMessage(
@@ -253,7 +281,7 @@ export function CitizenParticipationPanel({
   };
 
   const evaluateProposal = async () => {
-    if (!proposal) return;
+    if (!proposal || !submittedRequest) return;
 
     setIsEvaluating(true);
     setMessage(null);
@@ -277,11 +305,15 @@ export function CitizenParticipationPanel({
         );
       }
 
-      const result =
-        (await response.json()) as InterventionEvaluation;
+      const result = (await response.json()) as InterventionEvaluation;
 
       setEvaluation(result);
-      setMessage("Intervention evaluation completed.");
+
+      const statusRefreshed = await refreshCitizenRequest(submittedRequest.id);
+
+      if (statusRefreshed) {
+        setMessage("Intervention evaluation completed.");
+      }
     } catch (error) {
       setIsError(true);
       setMessage(
@@ -414,8 +446,7 @@ export function CitizenParticipationPanel({
           </h3>
 
           <p className="mt-2 text-sm text-gray-700">
-            Status:{" "}
-            <span className="font-medium">{investigation.status}</span>
+            Status: <span className="font-medium">{investigation.status}</span>
           </p>
 
           <p className="mt-1 text-sm text-gray-700">
@@ -495,13 +526,10 @@ export function CitizenParticipationPanel({
             {proposal.title}
           </h4>
 
-          <p className="mt-2 text-sm text-gray-700">
-            {proposal.description}
-          </p>
+          <p className="mt-2 text-sm text-gray-700">{proposal.description}</p>
 
           <p className="mt-3 text-sm text-gray-700">
-            Status:{" "}
-            <span className="font-medium">{proposal.status}</span>
+            Status: <span className="font-medium">{proposal.status}</span>
           </p>
 
           {proposal.expected_benefits.length > 0 && (
@@ -569,9 +597,7 @@ export function CitizenParticipationPanel({
             </span>
           </p>
 
-          <p className="mt-2 text-sm text-gray-700">
-            {evaluation.summary}
-          </p>
+          <p className="mt-2 text-sm text-gray-700">{evaluation.summary}</p>
 
           <div className="mt-3">
             <h4 className="text-sm font-medium text-gray-900">
