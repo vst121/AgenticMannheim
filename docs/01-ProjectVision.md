@@ -385,7 +385,7 @@ This makes Agentic AI an experimental capability that can be measured rather tha
 - Direct control of municipal infrastructure
 - City-wide simulation
 - Traffic research or optimization benchmarking
-- LLM versus Laya benchmarking as the primary project objective
+- LLM versus Jev/Laya benchmarking as the primary project objective
 - Production deployment for municipal operations
 
 ---
