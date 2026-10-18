@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -18,6 +19,34 @@ type CitizenRequestType =
   | "suggestion"
   | "general_request";
 
+type CitizenRequestResponse = {
+  id: string;
+  request_type: CitizenRequestType;
+  description: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  created_at: string;
+  correlation_id: string;
+};
+
+type InvestigationFinding = {
+  category: string;
+  description: string;
+  source: string;
+  confidence: number;
+};
+
+type InvestigationResponse = {
+  id: string;
+  request_id: string;
+  status: string;
+  findings: InvestigationFinding[];
+  related_request_ids: string[];
+  related_event_ids: string[];
+  correlation_id: string;
+};
+
 export function CitizenParticipationPanel({
   selectedLocation,
 }: CitizenParticipationPanelProps) {
@@ -25,6 +54,11 @@ export function CitizenParticipationPanel({
     useState<CitizenRequestType>("safety_concern");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInvestigating, setIsInvestigating] = useState(false);
+  const [submittedRequest, setSubmittedRequest] =
+    useState<CitizenRequestResponse | null>(null);
+  const [investigation, setInvestigation] =
+    useState<InvestigationResponse | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
 
@@ -46,27 +80,36 @@ export function CitizenParticipationPanel({
     setIsError(false);
 
     try {
-      const response = await fetch(`${env.apiBaseUrl}/api/citizen-requests`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${env.apiBaseUrl}/api/citizen-requests`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            request_type: requestType,
+            description: description.trim(),
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+          }),
         },
-        body: JSON.stringify({
-          request_type: requestType,
-          description: description.trim(),
-          latitude: selectedLocation.latitude,
-          longitude: selectedLocation.longitude,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
         throw new Error(
-          errorBody?.detail ??
-            `Request submission failed (${response.status}).`,
+          typeof errorBody?.detail === "string"
+            ? errorBody.detail
+            : `Request submission failed (${response.status}).`,
         );
       }
 
+      const createdRequest =
+        (await response.json()) as CitizenRequestResponse;
+
+      setSubmittedRequest(createdRequest);
+      setInvestigation(null);
       setDescription("");
       setMessage("Your request was submitted successfully.");
     } catch (error) {
@@ -81,8 +124,49 @@ export function CitizenParticipationPanel({
     }
   };
 
+  const investigateRequest = async () => {
+    if (!submittedRequest) {
+      return;
+    }
+
+    setIsInvestigating(true);
+    setMessage(null);
+    setIsError(false);
+    setInvestigation(null);
+
+    try {
+      const response = await fetch(
+        `${env.apiBaseUrl}/api/citizen-requests/${submittedRequest.id}/investigation`,
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          typeof errorBody?.detail === "string"
+            ? errorBody.detail
+            : `Investigation failed (${response.status}).`,
+        );
+      }
+
+      const result =
+        (await response.json()) as InvestigationResponse;
+
+      setInvestigation(result);
+      setMessage("Investigation results received.");
+    } catch (error) {
+      setIsError(true);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to investigate your request.",
+      );
+    } finally {
+      setIsInvestigating(false);
+    }
+  };
+
   return (
-    <section className="absolute right-4 top-4 z-10 w-80 max-w-[calc(100vw-2rem)] rounded-lg bg-white p-4 shadow-lg">
+    <section className="absolute right-4 top-4 z-10 max-h-[calc(100vh-2rem)] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg bg-white p-4 shadow-lg">
       <h2 className="text-lg font-semibold text-gray-900">
         Citizen Participation
       </h2>
@@ -151,11 +235,96 @@ export function CitizenParticipationPanel({
       <button
         type="button"
         onClick={submitRequest}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isInvestigating}
         className="mt-4 w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? "Submitting..." : "Submit request"}
       </button>
+
+      {submittedRequest && (
+        <div className="mt-4 rounded-md border border-gray-200 p-3">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Submitted request
+          </h3>
+
+          <p className="mt-2 text-xs text-gray-500">Request ID</p>
+          <p className="break-all text-xs text-gray-800">
+            {submittedRequest.id}
+          </p>
+
+          <p className="mt-2 text-sm text-gray-700">
+            Status: <span className="font-medium">{submittedRequest.status}</span>
+          </p>
+
+          <button
+            type="button"
+            onClick={investigateRequest}
+            disabled={isInvestigating || isSubmitting}
+            className="mt-3 w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isInvestigating ? "Investigating..." : "Investigate request"}
+          </button>
+        </div>
+      )}
+
+      {investigation && (
+        <div className="mt-4 rounded-md border border-indigo-200 bg-indigo-50 p-3">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Investigation results
+          </h3>
+
+          <p className="mt-2 text-sm text-gray-700">
+            Status:{" "}
+            <span className="font-medium">{investigation.status}</span>
+          </p>
+
+          <p className="mt-1 text-sm text-gray-700">
+            Related requests: {investigation.related_request_ids.length}
+          </p>
+
+          <p className="text-sm text-gray-700">
+            Related events: {investigation.related_event_ids.length}
+          </p>
+
+          <div className="mt-3">
+            <h4 className="text-sm font-medium text-gray-900">
+              Findings ({investigation.findings.length})
+            </h4>
+
+            {investigation.findings.length > 0 ? (
+              <ul className="mt-2 space-y-3">
+                {investigation.findings.map((finding, index) => (
+                  <li
+                    key={`${finding.category}-${finding.source}-${index}`}
+                    className="rounded-md bg-white p-3"
+                  >
+                    <p className="text-sm font-medium text-gray-900">
+                      {finding.category.replaceAll("_", " ")}
+                    </p>
+
+                    <p className="mt-1 text-sm text-gray-700">
+                      {finding.description}
+                    </p>
+
+                    <p className="mt-2 text-xs text-gray-500">
+                      Source: {finding.source}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      Confidence:{" "}
+                      {`${(finding.confidence * 100).toFixed(0)}%`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-gray-600">
+                No findings were returned for this investigation.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {message && (
         <p
