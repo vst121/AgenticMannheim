@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import UUID
 from domain.intervention_evaluation import InterventionEvaluation
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from httpcore import request
 from infrastructure.ai.fake_jev_client import FakeJevClient
 from infrastructure.persistence.repositories.intervention_evaluation_repository import InterventionEvaluationRepository
 from infrastructure.persistence.repositories.intervention_proposal_repository import InterventionProposalRepository

@@ -84,6 +84,7 @@ class CitizenParticipationService:
 
         return saved_request
 
+
     def investigate_request(
         self,
         request_id: UUID,
@@ -96,6 +97,9 @@ class CitizenParticipationService:
                 f"Citizen request '{request_id}' was not found."
             )
 
+        request.start_investigation()
+        self._request_repository.update(request)
+
         agent = InvestigationAgent(
             digital_twin=digital_twin,
             request_repository=self._request_repository,
@@ -103,6 +107,7 @@ class CitizenParticipationService:
         )
 
         return agent.investigate(request)
+
 
     def propose_intervention(
         self,
@@ -187,4 +192,9 @@ class CitizenParticipationService:
             correlation_id=request.correlation_id,
         )
 
-        return self._intervention_proposal_repository.add(proposal)
+        saved_proposal = self._intervention_proposal_repository.add(proposal)
+
+        request.mark_proposed()
+        self._request_repository.update(request)
+
+        return saved_proposal
