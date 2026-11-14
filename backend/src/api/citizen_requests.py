@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 from domain.intervention_evaluation import InterventionEvaluation
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from infrastructure.ai.fake_jev_client import FakeJevClient
+from infrastructure.ai.jev_client import JevClient
 from infrastructure.persistence.repositories.intervention_evaluation_repository import InterventionEvaluationRepository
 from infrastructure.persistence.repositories.intervention_proposal_repository import InterventionProposalRepository
 from pydantic import BaseModel, ConfigDict, Field
@@ -345,7 +345,7 @@ def evaluate_intervention_proposal(
                 event_repository=EventRepository(session),
                 evaluation_repository=InterventionEvaluationRepository(session),
                 digital_twin=request.app.state.digital_twin,
-                jev_client=FakeJevClient(),
+                jev_client=JevClient(),
             )
             evaluation = service.evaluate(proposal_id)
     except ValueError as exc:

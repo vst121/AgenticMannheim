@@ -8,9 +8,13 @@ class OpenRouterClient:
     """Minimal client for OpenRouter's OpenAI-compatible API."""
 
     def __init__(self) -> None:
-        self._model = settings.openrouter_model
+        self._model = settings.openrouter_model.removesuffix(":generateContent")
+        base_url = settings.openrouter_base_url.rstrip("/")
+        if "generativelanguage.googleapis.com" in base_url:
+            base_url = f"{base_url}/openai"
+
         self._client = OpenAI(
-            base_url=settings.openrouter_base_url,
+            base_url=base_url,
             api_key=settings.openrouter_api_key,
         )
 

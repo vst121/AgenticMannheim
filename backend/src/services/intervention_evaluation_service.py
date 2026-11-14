@@ -7,7 +7,6 @@ from domain.intervention_evaluation import (
     EvaluationFinding,
     InterventionEvaluation,
 )
-from infrastructure.ai.fake_llm_client import FakeLLMClient
 from infrastructure.ai.jev_client import JevClient
 from infrastructure.ai.openrouter_client import OpenRouterClient
 from infrastructure.persistence.repositories.citizen_request_repository import (
@@ -40,8 +39,8 @@ class InterventionEvaluationService:
         self._event_repository = event_repository
         self._evaluation_repository = evaluation_repository
         self._digital_twin = digital_twin
-        self._evaluation_agent = evaluation_agent or (
-            InterventionEvaluationAgent(FakeLLMClient()) # InterventionEvaluationAgent(OpenRouterClient())
+        self._evaluation_agent = evaluation_agent or InterventionEvaluationAgent(
+            OpenRouterClient()
         )
         self._jev_client = jev_client or JevClient()
 
