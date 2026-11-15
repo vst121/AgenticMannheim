@@ -53,6 +53,17 @@ The current MVP demonstrates an emergency vehicle scenario:
 
 The architecture is intentionally designed so this simple scenario can evolve into more sophisticated multi-agent and counterfactual simulations.
 
+### Citizen Participation
+
+The map also lets people submit Mannheim-related requests by choosing a location and describing an incident, safety concern, suggestion, or general request. The workflow then:
+
+1. Records the request and its location as a city event.
+2. Investigates nearby intersections in the Digital Twin, along with related citizen requests and location-tagged events.
+3. Generates an intervention proposal with expected benefits and potential risks.
+4. Evaluates the proposal using an AI agent and Jev evidence assessment, returning a favorable, unfavorable, or inconclusive outcome.
+
+Requests, investigations, proposals, and evaluations are persisted and linked by correlation IDs. Proposals are for review and simulation; submitting a request does not change real-world infrastructure or traffic controls.
+
 ## Architecture
 
 ```text
@@ -176,6 +187,7 @@ The current implementation focuses on:
 - Policy validation
 - Event-driven simulation
 - Live map visualization
+- Map-based citizen requests, investigations, intervention proposals, and evaluations
 
 Future directions include:
 
@@ -197,6 +209,7 @@ Agentic Mannheim is **not**:
 - an autonomous vehicle system
 - a traffic optimization research platform
 - an LLM benchmark
+- a system that automatically implements citizen requests in the real world
 
 All city behavior is simulated.
 
